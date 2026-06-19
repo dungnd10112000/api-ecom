@@ -55,6 +55,12 @@ def get_sankey_report(db: Session = Depends(get_db)):
         if "zalo" in title_lower:
             return "Zalo"
             
+        if "showroom" in title_lower:
+            return "Showroom"
+            
+        if "sàn tmdt" in title_lower or "sàn tmđt" in title_lower or "sàn thương mại" in title_lower:
+            return "Sàn thương mại điện tử"
+            
         # Group specified web channels under Website
         website_keywords = {
             "đề nghị báo giá (products)",
@@ -99,6 +105,10 @@ def get_sankey_report(db: Session = Depends(get_db)):
                 return "Facebook"
             if "zalo" in curr_title_lower:
                 return "Zalo"
+            if "showroom" in curr_title_lower:
+                return "Showroom"
+            if "sàn tmdt" in curr_title_lower or "sàn tmđt" in curr_title_lower or "sàn thương mại" in curr_title_lower:
+                return "Sàn thương mại điện tử"
             if curr.TieuDe and curr.TieuDe.lower() == "events":
                 return "Sự kiện"
             if curr.KhoaChaId and curr.KhoaChaId in tax_map:

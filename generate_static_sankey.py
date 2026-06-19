@@ -51,6 +51,12 @@ def generate_static_html():
             if "zalo" in title_lower:
                 return "Zalo"
                 
+            if "showroom" in title_lower:
+                return "Showroom"
+                
+            if "sàn tmdt" in title_lower or "sàn tmđt" in title_lower or "sàn thương mại" in title_lower:
+                return "Sàn thương mại điện tử"
+                
             website_keywords = {
                 "đề nghị báo giá (products)",
                 "đề nghị báo giá (header)",
@@ -91,6 +97,10 @@ def generate_static_html():
                     return "Facebook"
                 if "zalo" in curr_title_lower:
                     return "Zalo"
+                if "showroom" in curr_title_lower:
+                    return "Showroom"
+                if "sàn tmdt" in curr_title_lower or "sàn tmđt" in curr_title_lower or "sàn thương mại" in curr_title_lower:
+                    return "Sàn thương mại điện tử"
                 if curr.TieuDe and curr.TieuDe.lower() == "events":
                     return "Sự kiện"
                 if curr.KhoaChaId and curr.KhoaChaId in tax_map:
