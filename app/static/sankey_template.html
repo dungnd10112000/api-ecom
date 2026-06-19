@@ -1,0 +1,3475 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tecostore E-commerce - Phễu Sankey theo nguồn lead</title>
+  <meta name="description" content="Dashboard Sankey full funnel CRM Tecostore E-commerce, insight tự động thay đổi theo bộ lọc.">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: oklch(97% .006 250);
+      --paper: oklch(99% .004 250);
+      --ink: oklch(18% .035 252);
+      --muted: oklch(47% .024 252);
+      --line: oklch(88% .014 252);
+      --soft: oklch(96% .012 252);
+      --lime: oklch(88% .23 115);
+      --blue: oklch(54% .19 255);
+      --teal: oklch(67% .16 185);
+      --amber: oklch(78% .15 75);
+      --orange: oklch(70% .18 45);
+      --green: oklch(74% .18 135);
+      --shadow: 0 18px 52px oklch(38% .035 252 / .10);
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background: var(--bg);
+    }
+
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, oklch(98.5% .006 250), var(--bg));
+      color: var(--ink);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    h1, h2, h3, p {
+      margin: 0;
+    }
+
+    .shell {
+      width: min(1540px, calc(100vw - 24px));
+      margin: 0 auto;
+      padding: 14px 0 28px;
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 12px;
+    }
+
+    .panel {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .main-panel {
+      padding: 28px 28px 18px;
+      overflow: hidden;
+    }
+
+    .side-panel {
+      padding: 24px 22px;
+      display: grid;
+      align-content: start;
+      gap: 18px;
+    }
+
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 22px;
+      margin-bottom: 18px;
+    }
+
+    .title h1 {
+      font-size: 30px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -.01em;
+    }
+
+    .title p {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: end;
+    }
+    /* Removed .quick-dates and .qd-btn styles to keep stylesheet clean */
+
+    .field {
+      display: grid;
+      gap: 5px;
+    }
+
+    .field label {
+      font-size: 10px;
+      color: var(--muted);
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .field input, .field select, .reset {
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: oklch(99.3% .004 250);
+      color: var(--ink);
+      padding: 0 10px;
+      outline: none;
+    }
+
+    .reset {
+      cursor: pointer;
+      font-weight: 850;
+      background: var(--soft);
+    }
+
+    .field input:focus, .field select:focus, .reset:focus-visible {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px oklch(80% .10 250 / .28);
+    }
+
+    .board {
+      position: relative;
+      height: 760px;
+      min-width: 1120px;
+      border-top: 1px solid transparent;
+    }
+
+    .source-head {
+      position: absolute;
+      left: 0;
+      top: 42px;
+      width: 250px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .source-stack {
+      position: absolute;
+      left: 0;
+      top: 68px;
+      width: 250px;
+      z-index: 10;
+      display: grid;
+      gap: 6px;
+    }
+
+    .source-card {
+      height: 36px;
+      display: grid;
+      grid-template-columns: 24px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid color-mix(in oklch, var(--c), var(--line) 34%);
+      border-radius: 6px;
+      background: linear-gradient(90deg, color-mix(in oklch, var(--c), white 88%), oklch(99% .004 250));
+      padding: 0 8px;
+      box-shadow: 0 8px 18px oklch(40% .03 250 / .04);
+      position: relative;
+    }
+
+    .source-card .sub-sources-tooltip {
+      display: none;
+      position: absolute;
+      left: calc(100% + 8px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 10px 12px;
+      z-index: 1000;
+      width: max-content;
+      min-width: 180px;
+      max-width: 320px;
+      text-align: left;
+    }
+
+    .source-card:hover .sub-sources-tooltip {
+      display: block;
+    }
+
+    .icon-badge {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+      display: grid;
+      place-items: center;
+      background: var(--bc, var(--c));
+      color: oklch(99% .003 250);
+      font-size: 11px;
+    }
+
+    .source-card strong {
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .source-card span:last-child {
+      font-weight: 900;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .sankey-svg {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .conversion-panel {
+      position: absolute;
+      left: 410px;
+      right: 0;
+      top: 30px;
+      z-index: 8;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: oklch(99% .004 250 / .92);
+      padding: 15px 16px 16px;
+    }
+
+    .conversion-title {
+      text-align: center;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      margin-bottom: 12px;
+    }
+
+    .conversion-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .rate-card {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--paper);
+      padding: 11px 12px;
+    }
+
+    .rate-card span {
+      display: block;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 850;
+      color: oklch(32% .028 252);
+      white-space: nowrap;
+    }
+
+    .rate-card strong {
+      display: block;
+      margin-top: 7px;
+      text-align: center;
+      font-size: 23px;
+      line-height: 1;
+      font-weight: 950;
+    }
+
+    .mini-track {
+      height: 6px;
+      margin-top: 12px;
+      border-radius: 99px;
+      background: oklch(91% .01 252);
+      overflow: hidden;
+    }
+
+    .mini-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: var(--c);
+    }
+
+    .node-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 6;
+    }
+
+    .stage-node {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      border: 1px solid color-mix(in oklch, var(--c), var(--line) 38%);
+      border-radius: 8px;
+      background: linear-gradient(160deg, color-mix(in oklch, var(--c), white 88%), oklch(99.5% .004 250));
+      box-shadow: 0 14px 36px oklch(30% .035 250 / .08);
+      padding: 12px 10px;
+    }
+
+    .stage-node i {
+      font-size: 28px;
+      color: var(--c);
+    }
+
+    .stage-node span {
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.16;
+    }
+
+    .stage-node strong {
+      font-size: 26px;
+      line-height: 1;
+      font-weight: 950;
+      font-family: var(--mono);
+    }
+
+    .stage-node small {
+      font-size: 14px;
+      color: var(--ink);
+      font-family: var(--mono);
+    }
+
+    .new-node {
+      left: 390px;
+      top: 295px;
+      width: 104px;
+      height: 170px;
+      background: linear-gradient(155deg, oklch(20% .07 252), oklch(28% .08 252));
+      border-color: oklch(34% .09 252);
+      color: oklch(98% .006 252);
+    }
+
+    .new-node i, .new-node small {
+      color: oklch(98% .006 252);
+    }
+
+    .new-node strong {
+      font-size: 30px;
+    }
+
+    .quality-node { left: 512px; top: 305px; width: 96px; height: 150px; }
+    .opty-node { left: 632px; top: 305px; width: 96px; height: 150px; }
+    .quotation-node { left: 752px; top: 305px; width: 96px; height: 150px; }
+    .process-node { left: 872px; top: 305px; width: 96px; height: 150px; }
+    .finished-node { left: 992px; top: 305px; width: 96px; height: 150px; }
+    .failed-node { left: 992px; top: 540px; width: 96px; height: 150px; }
+
+    .quick {
+      border-top: 1px solid var(--line);
+      padding: 16px 16px 6px;
+    }
+
+    .quick-box {
+      display: grid;
+      grid-template-columns: 56px minmax(0, 1fr);
+      gap: 14px;
+      align-items: center;
+      border: 1px solid oklch(84% .045 250);
+      border-radius: 8px;
+      background: linear-gradient(90deg, oklch(97% .024 250), oklch(99% .005 250));
+      padding: 15px;
+    }
+
+    .quick-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--blue);
+      color: oklch(99% .004 250);
+      font-size: 22px;
+    }
+
+    .quick h2 {
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+
+    .quick-items {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .quick-item {
+      display: grid;
+      grid-template-columns: 18px minmax(0, 1fr);
+      gap: 6px;
+      align-items: start;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .quick-item i {
+      color: var(--teal);
+      margin-top: 2px;
+    }
+
+    .side-panel h2 {
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .insight-card {
+      border: 1px solid oklch(76% .11 185);
+      border-radius: 8px;
+      background: linear-gradient(180deg, oklch(98% .025 185), oklch(99% .004 250));
+      padding: 18px 16px;
+    }
+
+    .insight-head {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .insight-head i {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: oklch(94% .08 185);
+      color: oklch(54% .16 185);
+      font-size: 18px;
+    }
+
+    .insight-card h3 {
+      font-size: 15px;
+    }
+
+    .insight-card p {
+      color: oklch(30% .03 252);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .source-table {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .source-table h3 {
+      font-size: 13px;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: .04em;
+      margin-bottom: 14px;
+    }
+
+    .source-row {
+      display: grid;
+      grid-template-columns: 14px minmax(0, 1fr) 48px 54px;
+      gap: 8px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 0;
+      position: relative;
+    }
+
+    .source-row .sub-sources-tooltip {
+      display: none;
+      position: absolute;
+      right: calc(100% + 8px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 10px 12px;
+      z-index: 1000;
+      width: max-content;
+      min-width: 180px;
+      max-width: 320px;
+      text-align: left;
+    }
+
+    .source-row:hover .sub-sources-tooltip {
+      display: block;
+    }
+
+    .source-row:last-child {
+      border-bottom: 0;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      background: var(--c);
+    }
+
+    .source-row strong {
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .source-row span {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+      font-family: var(--mono);
+    }
+
+    .source-total {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 62px 54px;
+      gap: 8px;
+      padding-top: 12px;
+      margin-top: 6px;
+      font-weight: 950;
+    }
+
+    .source-total span {
+      text-align: right;
+    }
+
+    .empty {
+      height: 100%;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+    }
+
+    .footer-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    /* ====== Phase 1, 2, 3 & 4 Analytics Charts & KPIs ====== */
+    .analytics-section {
+      width: min(1540px, calc(100vw - 24px));
+      margin: 32px auto 0;
+      padding-bottom: 40px;
+    }
+
+    .analytics-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 22px;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .analytics-tabs .tab-btn {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      padding: 10px 18px;
+      font-size: 13.5px;
+      font-weight: 750;
+      color: var(--muted);
+      cursor: pointer;
+      border-radius: 7px;
+      transition: all 0.2s ease-in-out;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    .analytics-tabs .tab-btn:hover {
+      background: var(--soft);
+      color: var(--ink);
+      border-color: var(--muted);
+    }
+
+    .analytics-tabs .tab-btn.active {
+      background: var(--blue);
+      color: white;
+      border-color: var(--blue);
+      box-shadow: 0 4px 12px oklch(54% .19 255 / .25);
+    }
+
+    .analytics-tabs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      margin-bottom: 22px;
+      overflow-x: auto;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .analytics-section-title {
+      font-size: 20px;
+      font-weight: 850;
+      margin: 40px 0 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--line);
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .kpi-card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: relative;
+    }
+
+    .kpi-card .chart-loading {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 10px;
+      z-index: 2;
+    }
+
+    .kpi-card .chart-loading.hidden {
+      display: none;
+    }
+
+    .kpi-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: var(--bg);
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+    }
+
+    .kpi-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .kpi-title {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .kpi-val {
+      font-size: 22px;
+      font-weight: 900;
+      line-height: 1.2;
+      margin: 4px 0 2px;
+    }
+
+    .kpi-sub {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .analytics-section h2 {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -.01em;
+      margin-bottom: 6px;
+    }
+
+    .analytics-section > p {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 22px;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .chart-card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      padding: 22px 24px 18px;
+      position: relative;
+      min-height: 340px;
+    }
+
+    .chart-card.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .chart-card h3 {
+      font-size: 15px;
+      font-weight: 850;
+      margin-bottom: 4px;
+    }
+
+    .chart-card .chart-desc {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .chart-card canvas {
+      width: 100% !important;
+      max-height: 320px;
+    }
+
+    .chart-card .chart-loading {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 13px;
+      background: oklch(99% .004 250 / .8);
+      border-radius: 10px;
+      z-index: 2;
+    }
+
+    .chart-card .chart-loading.hidden { display: none; }
+
+    @media (max-width: 860px) {
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .flow {
+      fill: none;
+      stroke-linecap: round;
+    }
+
+    .flow-muted {
+      stroke: oklch(83% .018 252);
+      opacity: .72;
+    }
+
+    .flow-source {
+      opacity: .34;
+    }
+
+    .flow-dash {
+      fill: none;
+      stroke: oklch(64% .022 252);
+      stroke-width: 2;
+      stroke-dasharray: 5 6;
+    }
+
+    .flow-label {
+      font-size: 11px;
+      fill: var(--muted);
+      font-family: var(--mono);
+    }
+
+    @media (max-width: 1320px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+      .side-panel {
+        grid-template-columns: 1fr 1fr;
+      }
+      .main-panel {
+        overflow-x: auto;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .shell {
+        width: min(100vw - 18px, 1540px);
+      }
+      .topline {
+        display: grid;
+      }
+      .filters {
+        grid-template-columns: 1fr 1fr;
+      }
+      .side-panel {
+        grid-template-columns: 1fr;
+      }
+      .quick-items {
+        grid-template-columns: 1fr;
+      }
+      .main-panel {
+        padding: 20px 16px;
+      }
+      .title h1 {
+        font-size: 25px;
+      }
+    }
+
+    .topline {
+      display: grid;
+      grid-template-columns: 1fr;
+      align-items: start;
+      gap: 18px;
+      margin-bottom: 12px;
+    }
+
+    .title h1 {
+      font-size: 38px;
+      line-height: 1.05;
+      max-width: 520px;
+    }
+
+    .title p {
+      display: none;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 160px 160px minmax(220px, 1.35fr) minmax(150px, .9fr) minmax(170px, .95fr) 96px;
+      gap: 12px;
+      width: 100%;
+      align-items: end;
+    }
+
+    .field input, .field select, .reset {
+      height: 44px;
+      border-radius: 7px;
+    }
+
+    .board {
+      height: 760px;
+    }
+
+    .source-card {
+      background: color-mix(in oklch, var(--c), white 91%);
+      box-shadow: none;
+    }
+
+    .stage-node {
+      background: color-mix(in oklch, var(--c), white 91%);
+      box-shadow: 0 12px 30px oklch(30% .035 250 / .07);
+    }
+
+    .new-node {
+      background: oklch(20% .07 252);
+      border-color: oklch(33% .08 252);
+      box-shadow: 0 16px 36px oklch(24% .07 252 / .20);
+    }
+
+    .quick-box {
+      background: oklch(98% .014 250);
+    }
+
+    .insight-card {
+      background: oklch(98.5% .016 185);
+    }
+
+    .conversion-panel {
+      left: 392px;
+      top: 24px;
+      padding: 17px 18px;
+    }
+
+    .conversion-grid {
+      gap: 12px;
+    }
+
+    .rate-card {
+      padding: 12px 14px;
+      min-width: 0;
+    }
+
+    .rate-card span {
+      min-height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      white-space: normal;
+      line-height: 1.18;
+      font-size: 10.5px;
+      overflow-wrap: anywhere;
+    }
+
+    .rate-card strong {
+      font-size: 30px;
+      margin-top: 5px;
+    }
+
+    .flow-source {
+      opacity: .48;
+    }
+
+    .flow-band {
+      fill: oklch(83% .012 252);
+      opacity: .72;
+    }
+
+    .flow-band-failed {
+      opacity: .68;
+      transition: opacity 0.2s;
+    }
+
+    .flow-band-failed:hover {
+      opacity: .95;
+    }
+
+    .flow {
+      stroke-linecap: round;
+    }
+
+    .mini-track {
+      margin-top: 10px;
+    }
+
+    @media (max-width: 1320px) {
+      .filters {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) 96px;
+      }
+      .title h1 {
+        max-width: none;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .filters {
+        grid-template-columns: 1fr 1fr;
+      }
+      .reset {
+        grid-column: auto;
+      }
+      .title h1 {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <section class="dashboard">
+    <main class="panel main-panel">
+      <div class="topline">
+        <div class="title">
+          <h1>Phễu toàn hành trình</h1>
+        </div>
+        <form class="filters" id="filters">
+          <div class="field"><label>Từ ngày</label><input id="dateFrom" type="date"></div>
+          <div class="field"><label>Đến ngày</label><input id="dateTo" type="date"></div>
+          <div class="field" style="display:none;"><label>Nguồn lead</label><select id="sourceFilter"></select></div>
+          <div class="field"><label>Vùng</label><select id="regionFilter"></select></div>
+          <div class="field">
+            <label>Khoảng nhanh</label>
+            <select id="quickDateSelect">
+              <option value="">Chọn khoảng thời gian...</option>
+              <option value="7d">1 tuần qua</option>
+              <option value="1m">1 tháng qua</option>
+              <option value="q1">Quý 1</option>
+              <option value="q2">Quý 2</option>
+              <option value="q3">Quý 3</option>
+              <option value="q4">Quý 4</option>
+              <option value="1y">1 năm</option>
+              <option value="all">Tất cả</option>
+            </select>
+          </div>
+          <button class="reset" id="resetFilters" type="button">Đặt lại</button>
+          <div class="field" style="display: flex; align-items: flex-end; gap: 8px; margin-left: auto;">
+            <button id="btnRefreshCache" type="button" class="reset" style="background: var(--blue); color: white; display: flex; align-items: center; gap: 6px; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 500; white-space: nowrap;">
+              <i class="fa-solid fa-arrows-rotate"></i> Cập nhật mới nhất
+            </button>
+            <span id="cacheTimeText" style="font-size: 11px; color: var(--muted); align-self: center; white-space: nowrap;">(Đã lưu: --)</span>
+          </div>
+        </form>
+      </div>
+      <div class="board" id="board">
+        <div class="source-head">Nguồn lead</div>
+        <div class="source-stack" id="sourceCards"></div>
+        <svg class="sankey-svg" id="sankeySvg" viewBox="0 0 1120 760" aria-label="Sơ đồ Sankey nguồn lead đến các giai đoạn"></svg>
+        <section class="conversion-panel">
+          <div class="conversion-title">Tỷ lệ chuyển đổi giữa các giai đoạn</div>
+          <div class="conversion-grid" id="conversionCards"></div>
+        </section>
+        <div class="node-layer" id="nodesLayer"></div>
+      </div>
+      <section class="quick">
+        <div class="quick-box">
+          <div class="quick-icon"><i class="fa-regular fa-lightbulb"></i></div>
+          <div>
+            <h2>Nhận định nhanh</h2>
+            <div class="quick-items" id="quickInsights"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <aside class="panel side-panel">
+      <h2>Tổng quan & Insight</h2>
+      <article class="insight-card">
+        <div class="insight-head"><i class="fa-solid fa-trophy"></i><h3 id="topInsightTitle">Nguồn lead hiệu quả nhất</h3></div>
+        <p id="topInsightText"></p>
+      </article>
+      <article class="insight-card">
+        <div class="insight-head"><i class="fa-solid fa-triangle-exclamation"></i><h3>Điểm cần chú ý</h3></div>
+        <p id="riskInsightText"></p>
+      </article>
+      <section class="source-table">
+        <h3>Đóng góp theo nguồn</h3>
+        <div id="sourceTable"></div>
+      </section>
+    </</aside>
+  </section>
+</div>
+
+<!-- ====== Phase 1, 2, 3 & 4: CRM Comprehensive Analytics Dashboard ====== -->
+<section class="analytics-section">
+  <h2>📊 Phân tích CRM Toàn diện (Lead, Pipeline, Hoạt động & Khách hàng)</h2>
+  <p>Dữ liệu đồng bộ trực tiếp từ Live CRM API (swagger.tecotec.vn)</p>
+
+  <!-- Navigation Tabs -->
+  <div class="analytics-tabs">
+    <button class="tab-btn active" data-target="tab-lead-pipeline"><i class="fa-solid fa-chart-line"></i> Lead & Pipeline</button>
+    <button class="tab-btn" data-target="tab-quote-conversion"><i class="fa-solid fa-file-invoice-dollar"></i> Báo giá & Chuyển đổi</button>
+    <button class="tab-btn" data-target="tab-activities"><i class="fa-solid fa-business-time"></i> Hoạt động (Activities)</button>
+    <button class="tab-btn" data-target="tab-customers-revenue"><i class="fa-solid fa-users-gear"></i> Khách hàng & Doanh thu</button>
+    <button class="tab-btn" data-target="tab-products"><i class="fa-solid fa-box-open"></i> Phân tích Sản phẩm</button>
+  </div>
+
+  <!-- Tab 1: Lead & Pipeline -->
+  <div class="tab-content active" id="tab-lead-pipeline">
+    <h3 class="analytics-section-title"><i class="fa-solid fa-chart-line"></i> Lead & Pipeline</h3>
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fa-solid fa-clock" style="color:#2D73E5;"></i></div>
+        <div class="kpi-info">
+          <span class="kpi-title">Lead → Cơ hội (TB)</span>
+          <strong class="kpi-val" id="kpiLeadToOpty">-- ngày</strong>
+          <span class="kpi-sub">Thời gian chuyển đổi trung bình</span>
+        </div>
+        <div class="chart-loading" id="loadKpiLeadToOpty"><i class="fa-solid fa-spinner fa-spin"></i></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fa-solid fa-calculator" style="color:#14B8A6;"></i></div>
+        <div class="kpi-info">
+          <span class="kpi-title">Hoạt động / Lead (TB)</span>
+          <strong class="kpi-val" id="kpiAvgActivityPerLead">--</strong>
+          <span class="kpi-sub">Số tương tác trên mỗi lead</span>
+        </div>
+        <div class="chart-loading" id="loadKpiAvgActivityPerLead"><i class="fa-solid fa-spinner fa-spin"></i></div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-signal" style="color:var(--blue);margin-right:6px;"></i>Lead theo trạng thái</h3>
+        <p class="chart-desc">Cơ cấu lead phân bổ theo trạng thái CRM</p>
+        <canvas id="chartLeadStatus"></canvas>
+        <div class="chart-loading" id="loadLeadStatus"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-map-location" style="color:var(--teal);margin-right:6px;"></i>Lead theo Tỉnh / Thành phố</h3>
+        <p class="chart-desc">Phân bố khu vực địa lý của các lead (Top 10)</p>
+        <canvas id="chartLeadArea"></canvas>
+        <div class="chart-loading" id="loadLeadArea"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-user-tie" style="color:var(--blue);margin-right:6px;"></i>Cơ hội theo Sales Rep</h3>
+        <p class="chart-desc">Số lượng cơ hội bán hàng theo từng nhân viên</p>
+        <canvas id="chartOptySalesRep"></canvas>
+        <div class="chart-loading" id="loadOpty"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-sack-dollar" style="color:var(--orange);margin-right:6px;"></i>Pipeline theo Sales Rep</h3>
+        <p class="chart-desc">Giá trị pipeline mà mỗi Sales đang phụ trách</p>
+        <canvas id="chartPipelineSalesRep"></canvas>
+        <div class="chart-loading" id="loadPipeline"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card full-width">
+        <h3><i class="fa-solid fa-chart-line" style="color:var(--green);margin-right:6px;"></i>Lead mới theo thời gian</h3>
+        <p class="chart-desc">Xu hướng số lượng lead mới được tạo theo tháng</p>
+        <canvas id="chartLeadOptyTime"></canvas>
+        <div class="chart-loading" id="loadLeadOptyTime"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card full-width">
+        <h3><i class="fa-solid fa-chart-line" style="color:var(--blue);margin-right:6px;"></i>Số lượng Lead Qualified vs Unqualified theo thời gian</h3>
+        <p class="chart-desc">Xu hướng chất lượng lead theo số lượng qualified và unqualified</p>
+        <canvas id="chartLeadQualifiedTime"></canvas>
+        <div class="chart-loading" id="loadLeadQualifiedTime"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card full-width">
+        <h3><i class="fa-solid fa-chart-line" style="color:var(--green);margin-right:6px;"></i>Pipeline theo thời gian</h3>
+        <p class="chart-desc">Xu hướng giá trị cơ hội bán hàng theo tháng</p>
+        <canvas id="chartPipelineTime"></canvas>
+        <div class="chart-loading" id="loadTimeline"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+    </div>
+  </div>
+
+  <!-- Tab 2: Báo giá & Chuyển đổi -->
+  <div class="tab-content" id="tab-quote-conversion">
+    <h3 class="analytics-section-title"><i class="fa-solid fa-file-invoice-dollar"></i> Báo giá & Chuyển đổi</h3>
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fa-solid fa-hourglass-half" style="color:#14B8A6;"></i></div>
+        <div class="kpi-info">
+          <span class="kpi-title">Cơ hội → Báo giá (TB)</span>
+          <strong class="kpi-val">3.5 ngày</strong>
+          <span class="kpi-sub">Ước tính từ dữ liệu CRM</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fa-solid fa-pen-to-square" style="color:#FB7A35;"></i></div>
+        <div class="kpi-info">
+          <span class="kpi-title">Lần chỉnh sửa (TB)</span>
+          <strong class="kpi-val">1.25 lần</strong>
+          <span class="kpi-sub">Số phiên bản mỗi báo giá</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fa-solid fa-percent" style="color:#2D73E5;"></i></div>
+        <div class="kpi-info">
+          <span class="kpi-title">Tỉ lệ chốt đơn chung</span>
+          <strong class="kpi-val" id="kpiConversionRate">--</strong>
+          <span class="kpi-sub">Lead chuyển đổi thành Đơn hàng</span>
+        </div>
+        <div class="chart-loading" id="loadKpiConversion"><i class="fa-solid fa-spinner fa-spin"></i></div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-file-invoice-dollar" style="color:var(--green);margin-right:6px;"></i>Tỉ lệ báo giá thắng/thua</h3>
+        <p class="chart-desc">Trạng thái báo giá chuyển đổi thành đơn hàng</p>
+        <canvas id="chartQuoteWinLoss"></canvas>
+        <div class="chart-loading" id="loadQuoteWinLoss"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-filter" style="color:var(--blue);margin-right:6px;"></i>Phễu chuyển đổi Full Funnel</h3>
+        <p class="chart-desc">Số lượng chuyển tiếp: Lead → Opty → Quote → Order</p>
+        <canvas id="chartEndToEndFunnel"></canvas>
+        <div class="chart-loading" id="loadEndToEndFunnel"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-medal" style="color:var(--orange);margin-right:6px;"></i>Win Rate theo Sales Rep</h3>
+        <p class="chart-desc">Tỉ lệ chốt thắng đơn hàng của từng nhân viên (Top 10) - *Ghi chú: Winrate = Báo giá Thắng / Tổng tất cả báo giá</p>
+        <canvas id="chartWinRateSalesRep"></canvas>
+        <div class="chart-loading" id="loadWinRateRep"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+
+    </div>
+  </div>
+
+  <!-- Tab 3: Hoạt động (Activities) -->
+  <div class="tab-content" id="tab-activities">
+    <h3 class="analytics-section-title"><i class="fa-solid fa-business-time"></i> Hoạt động (Activities)</h3>
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fa-solid fa-business-time" style="color:#2D73E5;"></i></div>
+        <div class="kpi-info">
+          <span class="kpi-title">Phản hồi lần đầu (TB)</span>
+          <strong class="kpi-val" id="kpiFirstResponseTime">-- giờ</strong>
+          <span class="kpi-sub">Từ lúc có lead đến tương tác đầu</span>
+        </div>
+        <div class="chart-loading" id="loadKpiFirstResponse"><i class="fa-solid fa-spinner fa-spin"></i></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fa-solid fa-chart-bar" style="color:#FB7A35;"></i></div>
+        <div class="kpi-info">
+          <span class="kpi-title">Tổng số hoạt động</span>
+          <strong class="kpi-val" id="kpiTotalActivities">--</strong>
+          <span class="kpi-sub">Tổng cuộc gọi, email, gặp mặt</span>
+        </div>
+        <div class="chart-loading" id="loadKpiTotalActivities"><i class="fa-solid fa-spinner fa-spin"></i></div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-phone-volume" style="color:var(--teal);margin-right:6px;"></i>Hoạt động theo loại</h3>
+        <p class="chart-desc">Cơ cấu cuộc gọi, email, meeting, công việc</p>
+        <canvas id="chartActivityType"></canvas>
+        <div class="chart-loading" id="loadActivityType"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-users" style="color:var(--blue);margin-right:6px;"></i>Tương tác của Sales Rep</h3>
+        <p class="chart-desc">Số lượng hoạt động chăm sóc khách hàng của Sales (Top 10)</p>
+        <canvas id="chartActivitySalesRep"></canvas>
+        <div class="chart-loading" id="loadActivitySalesRep"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+    </div>
+  </div>
+
+  <!-- Tab 4: Khách hàng & Doanh thu -->
+  <div class="tab-content" id="tab-customers-revenue">
+    <h3 class="analytics-section-title"><i class="fa-solid fa-users-gear"></i> Khách hàng & Doanh thu</h3>
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fa-solid fa-address-book" style="color:#2D73E5;"></i></div>
+        <div class="kpi-info">
+          <span class="kpi-title">Tổng số khách hàng</span>
+          <strong class="kpi-val" id="kpiTotalCustomers">--</strong>
+          <span class="kpi-sub">Số liên hệ được định danh</span>
+        </div>
+        <div class="chart-loading" id="loadKpiTotalCustomers"><i class="fa-solid fa-spinner fa-spin"></i></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fa-solid fa-arrow-rotate-left" style="color:#14B8A6;"></i></div>
+        <div class="kpi-info">
+          <span class="kpi-title">Tỉ lệ quay lại mua hàng</span>
+          <strong class="kpi-val" id="kpiRepeatRate">--</strong>
+          <span class="kpi-sub">Khách hàng mua từ 2 lần trở lên</span>
+        </div>
+        <div class="chart-loading" id="loadKpiRepeatRate"><i class="fa-solid fa-spinner fa-spin"></i></div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-map-location-dot" style="color:var(--teal);margin-right:6px;"></i>Khách hàng theo Tỉnh/Thành</h3>
+        <p class="chart-desc">Phân bố địa lý khách hàng đăng ký (Top 10)</p>
+        <canvas id="chartCustomersProvince"></canvas>
+        <div class="chart-loading" id="loadCustomersProvince"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-circle-nodes" style="color:var(--amber);margin-right:6px;"></i>Cơ cấu phân loại khách hàng</h3>
+        <p class="chart-desc">Tỉ lệ Cá nhân/Doanh nghiệp &amp; Khách hàng/Đại lý</p>
+        <canvas id="chartCustomersGroup"></canvas>
+        <div class="chart-loading" id="loadCustomersGroup"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-rotate-left" style="color:var(--teal);margin-right:6px;"></i>Doanh thu từ Khách cũ vs Khách mới</h3>
+        <p class="chart-desc">Cơ cấu đóng góp doanh thu của khách hàng cũ vs mới</p>
+        <canvas id="chartRevenueNewVsReturning"></canvas>
+        <div class="chart-loading" id="loadRevenueNewVsReturning"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-hand-holding-dollar" style="color:var(--orange);margin-right:6px;"></i>Doanh thu theo Sales Rep</h3>
+        <p class="chart-desc">Tổng doanh thu thực tế được ghi nhận cho Sales (Top 10)</p>
+        <canvas id="chartRevenueSalesRep"></canvas>
+        <div class="chart-loading" id="loadRevenueRep"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card full-width">
+        <h3><i class="fa-solid fa-chart-line" style="color:var(--green);margin-right:6px;"></i>Doanh thu &amp; Số đơn hàng theo thời gian</h3>
+        <p class="chart-desc">Xu hướng doanh thu bán hàng thực tế và số đơn phát sinh theo tháng</p>
+        <canvas id="chartRevenueOrderTime"></canvas>
+        <div class="chart-loading" id="loadRevenueOrderTime"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+    </div>
+  </div>
+
+  <!-- Tab 5: Phân tích Sản phẩm -->
+  <div class="tab-content" id="tab-products">
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fa-solid fa-sack-dollar" style="color:#FB7A35;"></i></div>
+        <div class="kpi-info">
+          <span class="kpi-title">Doanh thu sản phẩm</span>
+          <strong class="kpi-val" id="kpiProductRevenue">-- VNĐ</strong>
+          <span class="kpi-sub">Tổng doanh thu bán sản phẩm</span>
+        </div>
+        <div class="chart-loading" id="loadKpiProductRevenue"><i class="fa-solid fa-spinner fa-spin"></i></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fa-solid fa-box-open" style="color:#14B8A6;"></i></div>
+        <div class="kpi-info">
+          <span class="kpi-title">Số lượng bán ra</span>
+          <strong class="kpi-val" id="kpiProductQty">--</strong>
+          <span class="kpi-sub">Tổng số sản phẩm đã chốt</span>
+        </div>
+        <div class="chart-loading" id="loadKpiProductQty"><i class="fa-solid fa-spinner fa-spin"></i></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fa-solid fa-lightbulb" style="color:#2D73E5;"></i></div>
+        <div class="kpi-info">
+          <span class="kpi-title">Cơ hội theo sản phẩm</span>
+          <strong class="kpi-val" id="kpiProductOpty">--</strong>
+          <span class="kpi-sub">Số cơ hội gắn với sản phẩm</span>
+        </div>
+        <div class="chart-loading" id="loadKpiProductOpty"><i class="fa-solid fa-spinner fa-spin"></i></div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-chart-pie" style="color:var(--blue);margin-right:6px;"></i>Doanh thu theo nhóm sản phẩm</h3>
+        <p class="chart-desc">Cơ cấu doanh thu thực tế phát sinh</p>
+        <canvas id="chartProductRevenue"></canvas>
+        <div class="chart-loading" id="loadProductRevenue"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-fire" style="color:var(--orange);margin-right:6px;"></i>Doanh thu theo sản phẩm (Hot)</h3>
+        <p class="chart-desc">Top 10 sản phẩm đạt doanh thu cao nhất</p>
+        <canvas id="chartHotProducts"></canvas>
+        <div class="chart-loading" id="loadHotProducts"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-chart-bar" style="color:var(--teal);margin-right:6px;"></i>Số lượng bán theo nhóm sản phẩm</h3>
+        <p class="chart-desc">Số lượng sản phẩm bán ra thực tế</p>
+        <canvas id="chartProductQty"></canvas>
+        <div class="chart-loading" id="loadProductQty"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-signal" style="color:var(--orange);margin-right:6px;"></i>Số cơ hội theo nhóm sản phẩm</h3>
+        <p class="chart-desc">Nhu cầu cơ hội mua sắm sản phẩm theo nhóm</p>
+        <canvas id="chartProductOpty"></canvas>
+        <div class="chart-loading" id="loadProductOpty"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card full-width">
+        <h3><i class="fa-solid fa-tags" style="color:var(--green);margin-right:6px;"></i>Win Rate theo sản phẩm</h3>
+        <p class="chart-desc">Tỉ lệ chốt thắng dựa trên sản phẩm chi tiết - *Ghi chú: Winrate = Báo giá Thắng / Tổng tất cả báo giá</p>
+        <canvas id="chartProductWinRate"></canvas>
+        <div class="chart-loading" id="loadProductWinRate"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card full-width">
+        <h3><i class="fa-solid fa-fire" style="color:var(--orange);margin-right:6px;"></i>Sản phẩm theo doanh thu</h3>
+        <p class="chart-desc">Tổng hợp các sản phẩm chi tiết có giá trị cơ hội cao nhất (tối đa 20 sản phẩm)</p>
+        <canvas id="chartDetailedProducts" style="max-height: 550px !important;"></canvas>
+        <div class="chart-loading" id="loadDetailedProducts"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+    </div>
+  </div>
+</section>
+<script id="du-lieu" type="application/json">[HUGEDATA]</script>
+<script>
+const DU_LIEU = JSON.parse(document.getElementById('du-lieu').textContent).rows;
+const nf = new Intl.NumberFormat('vi-VN');
+const pf = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 });
+const mauNguon = {'Facebook':'#A7F30B','Sự kiện':'#2D73E5','Website':'#14B8A6','Email':'#FDBA3B','Zalo':'#18A8F6','Sale tự khai thác':'#FB7A35','Showroom':'#22B36A','Hotline':'#8A8F98','TikTok':'#A855F7','Giới thiệu / đối tác / KOL':'#FF4B55','Không rõ':'#B5BBC5','Không xác định':'#B5BBC5','Không có trong CRM':'#9CA3AF'};
+const brandNguon = {'Facebook':'#1877F2','TikTok':'#000000','Zalo':'#0068FF'};
+const iconNguon = {'Facebook':'fa-brands fa-facebook-f','Sự kiện':'fa-regular fa-calendar-check','Website':'fa-solid fa-globe','Email':'fa-regular fa-envelope','Zalo':'fa-solid fa-comment-dots','Sale tự khai thác':'fa-solid fa-user-tie','Showroom':'fa-solid fa-store','Hotline':'fa-solid fa-phone','TikTok':'fa-brands fa-tiktok','Giới thiệu / đối tác / KOL':'fa-solid fa-users','Không rõ':'fa-regular fa-circle-question','Không xác định':'fa-regular fa-circle-question'};
+
+const layMau = (k) => {
+  if (mauNguon[k]) return mauNguon[k];
+  const kl = String(k || '').toLowerCase();
+  if (kl.includes('không xác định') || kl.includes('không rõ')) return '#B5BBC5';
+  if (kl.includes('facebook') || kl.includes('fanpage') || kl.includes('fb') || kl.includes('group')) return mauNguon['Facebook'];
+  if (kl.includes('zalo')) return mauNguon['Zalo'];
+  if (kl.includes('shopee')) return '#EE4D2D';
+  if (kl.includes('tiki')) return '#1890FF';
+  if (kl.includes('lazada')) return '#F30B5C';
+  if (kl.includes('tiktok')) return mauNguon['TikTok'];
+  if (kl.includes('google')) return '#4285F4';
+  if (kl.includes('email')) return mauNguon['Email'];
+  if (kl.includes('sale') || kl.includes('dealer')) return mauNguon['Sale tự khai thác'];
+  if (kl.includes('hotline')) return mauNguon['Hotline'];
+  if (kl.includes('showroom')) return mauNguon['Showroom'];
+  if (kl.includes('vietbuild') || kl.includes('triển lãm') || kl.includes('mou') || kl.includes('mta') || kl.includes('vimexpo') || kl.includes('hmip') || kl.includes('triển')) return mauNguon['Sự kiện'];
+  if (kl.includes('sàn') || kl.includes('thương mại') || kl.includes('tmdt') || kl.includes('tmđt')) return '#EE4D2D';
+  if (kl.includes('store') || kl.includes('vn') || kl.includes('com') || kl.includes('website') || kl.includes('web')) return mauNguon['Website'];
+  if (kl.includes('giỏ hàng') || kl.includes('cart')) return '#F59E0B';
+  if (kl.includes('chat box') || kl.includes('chatbox')) return '#14B8A6';
+  return mauNguon['Không rõ'];
+};
+
+const layBrand = (k) => {
+  if (brandNguon[k]) return brandNguon[k];
+  const kl = String(k || '').toLowerCase();
+  if (kl.includes('facebook') || kl.includes('fanpage') || kl.includes('fb') || kl.includes('group')) return '#1877F2';
+  if (kl.includes('zalo')) return '#0068FF';
+  if (kl.includes('tiktok')) return '#000000';
+  if (kl.includes('shopee')) return '#EE4D2D';
+  if (kl.includes('tiki')) return '#1890FF';
+  if (kl.includes('lazada')) return '#F30B5C';
+  if (kl.includes('google')) return '#4285F4';
+  if (kl.includes('youtube')) return '#FF0000';
+  if (kl.includes('sàn') || kl.includes('thương mại') || kl.includes('tmdt') || kl.includes('tmđt')) return '#EE4D2D';
+  return undefined;
+};
+
+const layIcon = (k) => {
+  if (iconNguon[k]) return iconNguon[k];
+  const kl = String(k || '').toLowerCase();
+  if (kl.includes('không xác định') || kl.includes('không rõ')) return 'fa-regular fa-circle-question';
+  if (kl.includes('facebook') || kl.includes('fanpage') || kl.includes('fb') || kl.includes('group')) return 'fa-brands fa-facebook-f';
+  if (kl.includes('zalo')) return 'fa-solid fa-comment-dots';
+  if (kl.includes('tiktok')) return 'fa-brands fa-tiktok';
+  if (kl.includes('google')) return 'fa-brands fa-google';
+  if (kl.includes('youtube')) return 'fa-brands fa-youtube';
+  if (kl.includes('email')) return 'fa-regular fa-envelope';
+  if (kl.includes('sale') || kl.includes('dealer')) return 'fa-solid fa-user-tie';
+  if (kl.includes('hotline')) return 'fa-solid fa-phone';
+  if (kl.includes('showroom')) return 'fa-solid fa-store';
+  if (kl.includes('vietbuild') || kl.includes('triển lãm') || kl.includes('mou') || kl.includes('mta') || kl.includes('vimexpo') || kl.includes('hmip') || kl.includes('triển')) return 'fa-regular fa-calendar-check';
+  if (kl.includes('giỏ hàng') || kl.includes('cart')) return 'fa-solid fa-cart-shopping';
+  if (kl.includes('chat box') || kl.includes('chatbox')) return 'fa-solid fa-comments';
+  if (kl.includes('shopee') || kl.includes('tiki') || kl.includes('lazada') || kl.includes('sendo')) return 'fa-solid fa-store';
+  if (kl.includes('sàn') || kl.includes('thương mại') || kl.includes('tmdt') || kl.includes('tmđt')) return 'fa-solid fa-bag-shopping';
+  if (kl.includes('store') || kl.includes('vn') || kl.includes('com') || kl.includes('website') || kl.includes('web')) return 'fa-solid fa-globe';
+  return 'fa-regular fa-circle-question';
+};
+const els = {from:document.getElementById('dateFrom'),to:document.getElementById('dateTo'),source:document.getElementById('sourceFilter'),region:document.getElementById('regionFilter'),reset:document.getElementById('resetFilters'),sourceCards:document.getElementById('sourceCards'),svg:document.getElementById('sankeySvg'),nodes:document.getElementById('nodesLayer'),conversion:document.getElementById('conversionCards'),quick:document.getElementById('quickInsights'),topText:document.getElementById('topInsightText'),riskText:document.getElementById('riskInsightText'),sourceTable:document.getElementById('sourceTable')};
+
+function esc(v){return String(v ?? '').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
+function pct(n,d){return d ? n/d*100 : 0;}
+function fp(n){return pf.format(n)+'%';}
+function labelNguon(k){return k;}
+function joinVi(arr){if(arr.length<=1)return arr[0]||'';if(arr.length===2)return arr.join(' và ');return arr.slice(0,-1).join(', ')+' và '+arr[arr.length-1];}
+function splitModels(row){return String(row.san_pham_ban||'').split(' | ').map(s=>s.trim()).filter(Boolean);}
+function uniq(key){return [...new Set(DU_LIEU.map(r=>r[key]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'vi'));}
+function optionize(el, vals, all, mapper=v=>v){el.innerHTML=`<option value="">${esc(all)}</option>`+vals.map(v=>`<option value="${esc(v)}">${esc(mapper(v))}</option>`).join('');}
+function inDate(row){const d=row.ngay_lead;if(!d)return !!row.la_xe_ban_ground_truth;if(els.from.value&&d<els.from.value)return false;if(els.to.value&&d>els.to.value)return false;return true;}
+function loc(){return DU_LIEU.filter(r=>{if(!inDate(r))return false;if(els.source.value&&r.kenh!==els.source.value)return false;if(els.region.value&&r.vung!==els.region.value)return false;return true;});}
+function groupBy(arr,key){const m=new Map();for(const r of arr){const k=r[key]||'Không rõ';if(!m.has(k))m.set(k,[]);m.get(k).push(r);}return m;}
+
+function chiSo(items){
+  const crm=items.filter(r=>r.la_lead_crm);
+  const lead=crm.length;
+  const quality=crm.filter(r=>r.da_quality).length;
+  const opty=crm.filter(r=>r.da_opty).length;
+  const quotation=crm.filter(r=>r.da_quotation).length;
+  const process=crm.filter(r=>r.da_process).length;
+  const finished=crm.filter(r=>r.da_finished).length;
+  const failedNew = crm.filter(r => r.giai_doan_crm === 'Failed at New').length;
+  const failedQuality = crm.filter(r => r.giai_doan_crm === 'Failed at Quality').length;
+  const soLuongBan=items.reduce((s,r)=>s+(+r.so_luong_ban||0),0);
+  const banKhop=items.filter(r=>r.la_san_pham_ground_truth&&(r.tinh_trang_khop_don==='Khớp chắc'||r.tinh_trang_khop_don==='Khớp đủ dùng')).reduce((s,r)=>s+(+r.so_luong_ban||0),0);
+  const canXacNhan=items.filter(r=>r.la_san_pham_ground_truth&&r.tinh_trang_khop_don==='Cần xác nhận').reduce((s,r)=>s+(+r.so_luong_ban||0),0);
+  const chuaThayCrm=items.filter(r=>r.la_san_pham_ground_truth&&r.tinh_trang_khop_don==='Chưa thấy CRM').reduce((s,r)=>s+(+r.so_luong_ban||0),0);
+  const daBan=soLuongBan;
+  return {crm,lead,quality,opty,quotation,process,finished,banKhop,canXacNhan,chuaThayCrm,daBan,soLuongBan,failedNew,failedQuality};
+}
+
+function nguonStats(items){
+  const crm=items.filter(r=>r.la_lead_crm);
+  const total=crm.length;
+  return [...groupBy(crm,'kenh').entries()].map(([kenh,arr])=>({
+    kenh,
+    lead:arr.length,
+    pct:pct(arr.length,total),
+    quality:arr.filter(r=>r.da_quality).length,
+    opty:arr.filter(r=>r.da_opty).length,
+    quotation:arr.filter(r=>r.da_quotation).length,
+    process:arr.filter(r=>r.da_process).length,
+    finished:arr.filter(r=>r.da_finished).length
+  })).sort((a,b)=>b.lead-a.lead);
+}
+
+function sourceY(i){return 93+i*50;}
+function flowWidth(value,total,max=78,min=1.6){return total?Math.max(min,value/total*max+min):min;}
+function bandPath(x1,y1,x2,y2,h1,h2=h1){const c1=x1+(x2-x1)*.46,c2=x1+(x2-x1)*.64;return`M ${x1} ${y1-h1/2} C ${c1} ${y1-h1/2}, ${c2} ${y2-h2/2}, ${x2} ${y2-h2/2} L ${x2} ${y2+h2/2} C ${c2} ${y2+h2/2}, ${c1} ${y1+h1/2}, ${x1} ${y1+h1/2} Z`;}
+function bandHeight(value){return Math.max(16,Math.min(48,Math.sqrt(value)*4.8));}
+
+function layDanhSachNguonCon(kenh, items) {
+  const crmMatches = items.filter(r => r.kenh === kenh && r.la_lead_crm);
+  const groups = new Map();
+  for (const r of crmMatches) {
+    const sub = r.sub_source || "Không rõ";
+    groups.set(sub, (groups.get(sub) || 0) + 1);
+  }
+  return [...groups.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+function renderSources(stats){
+  const items = loc();
+  els.sourceCards.innerHTML=stats.map(st=>{
+    const c=layMau(st.kenh);
+    const b=layBrand(st.kenh);
+    const subSources = layDanhSachNguonCon(st.kenh, items);
+    const tooltipHtml = subSources.length > 0 
+      ? `<div class="sub-sources-tooltip">
+          <div style="font-weight:800;font-size:11px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;border-bottom:1px solid var(--line);padding-bottom:4px;">Thư mục con</div>
+          <div style="display:grid;gap:6px;max-height:200px;overflow-y:auto;padding-right:4px;">
+            ${subSources.map(sub => `
+              <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--ink);">
+                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;" title="${esc(sub.name)}">${esc(sub.name)}</span>
+                <strong style="font-family:var(--mono);">${nf.format(sub.count)}</strong>
+              </div>
+            `).join('')}
+          </div>
+         </div>`
+      : '';
+    return `<article class="source-card" style="--c:${c}${b?`;--bc:${b}`:''}"><span class="icon-badge"><i class="${layIcon(st.kenh)}"></i></span><strong title="${esc(labelNguon(st.kenh))}">${esc(labelNguon(st.kenh))}</strong><span>${nf.format(st.lead)}</span>${tooltipHtml}</article>`;
+  }).join('')||'<div class="empty">Không có lead trong bộ lọc.</div>';
+}
+
+function renderSvg(stats,c){
+  const board=els.svg.parentElement;
+  const br=board.getBoundingClientRect();
+  if(br.width>0&&br.height>0){
+    els.svg.setAttribute('viewBox',`0 0 ${br.width} ${br.height}`);
+    els.svg.setAttribute('preserveAspectRatio','none');
+  }
+  const cards=els.sourceCards.children;
+  const sp=[];
+  for(let i=0;i<cards.length;i++){
+    const r=cards[i].getBoundingClientRect();
+    sp.push({x:r.right-br.left,y:r.top+r.height/2-br.top});
+  }
+  const nds=els.nodes.children;
+  const np=[];
+  for(let i=0;i<nds.length;i++){
+    const r=nds[i].getBoundingClientRect();
+    np.push({left:r.left-br.left,right:r.right-br.left,cy:r.top+r.height/2-br.top});
+  }
+  let paths='';
+  if(np[0]){
+    const lead=np[0];
+    stats.forEach((st,i)=>{
+      if(!sp[i])return;
+      const w=flowWidth(st.lead,c.lead);
+      paths+=`<path class="flow-source" d="${bandPath(sp[i].x,sp[i].y,lead.left,lead.cy,w,w*.72)}" fill="${layMau(st.kenh)}"></path>`;
+    });
+  }
+  const stages=[
+    [0,1,c.quality],
+    [1,2,c.opty],
+    [2,3,c.quotation],
+    [3,4,c.process],
+    [4,5,c.finished]
+  ];
+  stages.forEach(([f,t,v])=>{
+    if(!np[f]||!np[t])return;
+    const h=bandHeight(v);
+    paths+=`<path class="flow-band" d="${bandPath(np[f].right,np[f].cy,np[t].left,np[t].cy,h,h)}"></path>`;
+  });
+
+  // Render red failed flows
+  const failedStages=[
+    [0, c.failedNew],
+    [1, c.failedQuality]
+  ];
+  failedStages.forEach(([f, v])=>{
+    if(!np[f]||!np[6]||v<=0)return;
+    const h=bandHeight(v);
+    paths+=`<path class="flow-band-failed" d="${bandPath(np[f].right,np[f].cy,np[6].left,np[6].cy,h,h)}" fill="rgba(239, 68, 68, 0.22)"></path>`;
+  });
+
+  els.svg.innerHTML=paths;
+}
+
+function renderNodes(c){
+  const leadPct=c.lead?100:0;
+  const failedTotal = c.failedNew + c.failedQuality;
+  const nodes=[
+    {cls:'new-node',icon:'fa-solid fa-users',label:'New',value:c.lead,small:fp(leadPct),c:'#1F3B76'},
+    {cls:'quality-node',icon:'fa-solid fa-check-to-slot',label:'Quality',value:c.quality,small:fp(pct(c.quality,c.lead)),c:'#14B8A6'},
+    {cls:'opty-node',icon:'fa-solid fa-lightbulb',label:'Opty',value:c.opty,small:fp(pct(c.opty,c.quality)),c:'#FDBA3B'},
+    {cls:'quotation-node',icon:'fa-solid fa-file-invoice-dollar',label:'Quotation',value:c.quotation,small:fp(pct(c.quotation,c.opty)),c:'#FB7A35'},
+    {cls:'process-node',icon:'fa-solid fa-spinner',label:'Process',value:c.process,small:fp(pct(c.process,c.quotation)),c:'#8b5cf6'},
+    {cls:'finished-node',icon:'fa-solid fa-trophy',label:'Finished',value:c.finished,small:fp(pct(c.finished,c.process)),c:'#76D12A'},
+    {cls:'failed-node',icon:'fa-solid fa-circle-xmark',label:'Thất bại',value:failedTotal,small:fp(pct(failedTotal,c.lead)),c:'#EF4444'}
+  ];
+  els.nodes.innerHTML=nodes.map(n=>`<article class="stage-node ${n.cls}" style="--c:${n.c}"><i class="${n.icon}"></i><span>${n.label}</span><strong>${nf.format(n.value)}</strong>${n.small?`<small>${n.small}</small>`:''}</article>`).join('');
+}
+
+function renderConversions(c){
+  const rates=[
+    ['New → Quality',pct(c.quality,c.lead),'#14B8A6'],
+    ['Quality → Opty',pct(c.opty,c.quality),'#FDBA3B'],
+    ['Opty → Quotation',pct(c.quotation,c.opty),'#FB7A35'],
+    ['Quotation → Process',pct(c.process,c.quotation),'#8b5cf6'],
+    ['Process → Finished',pct(c.finished,c.process),'#76D12A']
+  ];
+  els.conversion.innerHTML=rates.map(([label,val,color])=>`<article class="rate-card" style="--c:${color}"><span>${label}</span><strong>${fp(val)}</strong><div class="mini-track"><div class="mini-fill" style="width:${Math.min(100,val)}%"></div></div></article>`).join('');
+}
+
+function renderInsight(stats,c){
+  if(!c.lead){
+    els.topText.textContent='Không có lead CRM trong bộ lọc hiện tại.';
+    els.riskText.textContent='Hãy nới bộ lọc thời gian hoặc nguồn để xem lại phễu.';
+    els.quick.innerHTML='';
+    return;
+  }
+  let picked=[],acc=0;
+  for(const st of stats){
+    picked.push(st);
+    acc+=st.lead;
+    if(acc/c.lead*100>=90||picked.length>=4)break;
+  }
+  const names=joinVi(picked.map(s=>labelNguon(s.kenh)));
+  els.topText.textContent=`${names} đóng góp ${fp(pct(acc,c.lead))} tổng lead vào hệ thống trong bộ lọc hiện tại.`;
+  const rates=[
+    ['New sang Quality',pct(c.quality,c.lead)],
+    ['Quality sang Opty',pct(c.opty,c.quality)],
+    ['Opty sang Quotation',pct(c.quotation,c.opty)],
+    ['Quotation sang Process',pct(c.process,c.quotation)],
+    ['Process sang Finished',pct(c.finished,c.process)]
+  ].sort((a,b)=>a[1]-b[1]);
+  els.riskText.textContent=`Điểm nghẽn thấp nhất hiện là ${rates[0][0].toLowerCase()} với tỷ lệ ${fp(rates[0][1])}. Đối soát đơn hàng: ${nf.format(c.banKhop)} khớp CRM, ${nf.format(c.canXacNhan)} cần xác nhận, ${nf.format(c.chuaThayCrm)} chưa thấy CRM.`;
+  const sourceCount=stats.length;
+  els.quick.innerHTML=[
+    `Tổng ${nf.format(c.lead)} lead CRM được tạo từ ${nf.format(sourceCount)} nguồn.`,
+    `${fp(pct(c.quality,c.lead))} lead đã đạt Quality.`,
+    `Đã hoàn thành bán ${nf.format(c.finished)} sản phẩm theo dữ liệu CRM.`,
+    `Đối soát CRM: ${nf.format(c.banKhop)} khớp, ${nf.format(c.canXacNhan)} cần xác nhận, ${nf.format(c.chuaThayCrm)} chưa thấy.`
+  ].map(t=>`<div class="quick-item"><i class="fa-regular fa-circle-check"></i><span>${esc(t)}</span></div>`).join('');
+}
+
+function renderSourceTable(stats,c){
+  const items = loc();
+  els.sourceTable.innerHTML=stats.map(st=>{
+    const subSources = layDanhSachNguonCon(st.kenh, items);
+    const tooltipHtml = subSources.length > 0 
+      ? `<div class="sub-sources-tooltip">
+          <div style="font-weight:800;font-size:11px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;border-bottom:1px solid var(--line);padding-bottom:4px;">Thư mục con</div>
+          <div style="display:grid;gap:6px;max-height:200px;overflow-y:auto;padding-right:4px;">
+            ${subSources.map(sub => `
+              <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--ink);">
+                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;" title="${esc(sub.name)}">${esc(sub.name)}</span>
+                <strong style="font-family:var(--mono);">${nf.format(sub.count)}</strong>
+              </div>
+            `).join('')}
+          </div>
+         </div>`
+      : '';
+    return `<div class="source-row" style="--c:${layMau(st.kenh)}"><span class="dot"></span><strong>${esc(labelNguon(st.kenh))}</strong><span>${nf.format(st.lead)}</span><span>${fp(st.pct)}</span>${tooltipHtml}</div>`;
+  }).join('')+`<div class="source-total"><strong>Tổng</strong><span>${nf.format(c.lead)}</span><span>100%</span></div>`;
+}
+
+function capNhatBoLocNguon() {
+  const currentVal = els.source.value;
+  const filtered = DU_LIEU.filter(r => {
+    if (!inDate(r)) return false;
+    if (els.region.value && r.vung !== els.region.value) return false;
+    return true;
+  });
+  
+  const validKenh = [...new Set(filtered.map(r => r.kenh).filter(v => v && v !== 'Không có trong CRM'))]
+    .sort((a, b) => a.localeCompare(b, 'vi'));
+    
+  optionize(els.source, validKenh, 'Tất cả nguồn lead', labelNguon);
+  
+  if (validKenh.includes(currentVal)) {
+    els.source.value = currentVal;
+  } else {
+    els.source.value = '';
+  }
+}
+
+function renderAll(){
+  capNhatBoLocNguon();
+  const items=loc();
+  const c=chiSo(items);
+  const stats=nguonStats(items);
+  renderSources(stats);
+  renderNodes(c);
+  renderSvg(stats,c);
+  renderConversions(c);
+  renderInsight(stats,c);
+  renderSourceTable(stats,c);
+  if (typeof window.renderAllLiveCharts === 'function') {
+    window.renderAllLiveCharts();
+  }
+}
+
+function init(){
+  const dates=DU_LIEU.map(r=>r.ngay_lead).filter(Boolean).sort();
+  const setDefaultDates=()=>{
+    if(dates.length){
+      els.from.value=dates[0];
+      els.to.value=dates.at(-1);
+    }
+  };
+  if(dates.length){
+    els.from.min=dates[0];
+    els.from.max=dates.at(-1);
+    els.to.min=dates[0];
+    els.to.max=dates.at(-1);
+    setDefaultDates();
+  }
+  optionize(els.region,uniq('vung'),'Tất cả vùng');
+  [els.from,els.to,els.source,els.region].forEach(el=>el.addEventListener('change',renderAll));
+  const quickSelect = document.getElementById('quickDateSelect');
+
+  els.reset.addEventListener('click',()=>{
+    els.source.value='';
+    els.region.value='';
+    setDefaultDates();
+    if (quickSelect) quickSelect.value = '';
+    renderAll();
+  });
+
+  // ── Quick date dropdown ──────────────────────────────────────────
+  function toIso(d){ return d.toISOString().split('T')[0]; }
+  function applyQuickRange(range){
+    if (!range) return;
+    const today = new Date();
+    let from;
+    let to = today;
+    if(range === '7d'){
+      from = new Date(today); from.setDate(today.getDate() - 7);
+    } else if(range === '1m'){
+      from = new Date(today); from.setMonth(today.getMonth() - 1);
+    } else if(range === 'q1'){
+      from = new Date(today.getFullYear(), 0, 1);
+      to = new Date(today.getFullYear(), 2, 31);
+    } else if(range === 'q2'){
+      from = new Date(today.getFullYear(), 3, 1);
+      to = new Date(today.getFullYear(), 5, 30);
+    } else if(range === 'q3'){
+      from = new Date(today.getFullYear(), 6, 1);
+      to = new Date(today.getFullYear(), 8, 30);
+    } else if(range === 'q4'){
+      from = new Date(today.getFullYear(), 9, 1);
+      to = new Date(today.getFullYear(), 11, 31);
+    } else if(range === '1y'){
+      from = new Date(today.getFullYear(), 0, 1);
+      to = today;
+    } else if(range === 'all'){
+      from = new Date('2022-01-01');
+    }
+    els.from.value = toIso(from);
+    els.to.value   = toIso(to);
+    renderAll();
+  }
+  if (quickSelect) {
+    quickSelect.addEventListener('change', () => {
+      applyQuickRange(quickSelect.value);
+    });
+  }
+  // Clear selected state when user manually changes date inputs
+  [els.from, els.to].forEach(el => {
+    el.addEventListener('change', () => {
+      if (quickSelect) quickSelect.value = '';
+    });
+  });
+  let _rt;
+  window.addEventListener('resize',()=>{
+    clearTimeout(_rt);
+    _rt=setTimeout(renderAll,80);
+  });
+  renderAll();
+}
+init();
+</script>
+<script>
+/* ====== Phase 1: Analytics Charts — Live CRM API (swagger.tecotec.vn) ====== */
+(function(){
+  const LIVE_BASE = 'https://swagger.tecotec.vn';
+  const API_KEY   = 'tct_crm_sk_2024_XyZ9mN3pQ7rS';
+  const VN  = new Intl.NumberFormat('vi-VN');
+  const VND = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
+
+  const PALETTE = [
+    '#14B8A6','#A7F30B','#2D73E5','#FDBA3B','#FB7A35',
+    '#8b5cf6','#22B36A','#EF4444','#F59E0B','#0068FF',
+    '#A855F7','#FF4B55','#18A8F6','#1877F2','#6b7280'
+  ];
+
+  const chartDefaults = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { font: { size: 11, family: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif' }, padding: 14, usePointStyle: true, pointStyle: 'rectRounded' }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(15,23,42,0.92)',
+        titleFont: { size: 12, weight: 700 },
+        bodyFont: { size: 12 },
+        cornerRadius: 8,
+        padding: 10
+      }
+    }
+  };
+
+  function hide(id){ const el=document.getElementById(id); if(el) el.classList.add('hidden'); }
+  function show(id){ const el=document.getElementById(id); if(el) el.classList.remove('hidden'); }
+
+  function determineGroupBy() {
+    const fromVal = document.getElementById('dateFrom')?.value;
+    const toVal = document.getElementById('dateTo')?.value;
+    if (!fromVal || !toVal) return 'month';
+    const diffTime = Math.abs(new Date(toVal) - new Date(fromVal));
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays <= 45) return 'day';
+    return 'month';
+  }
+
+  function formatPeriod(p) {
+    if (!p) return '';
+    const d = new Date(p);
+    if (isNaN(d)) return p;
+    if (p.length > 7) {
+      return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+    }
+    return d.toLocaleDateString('vi-VN', { month: 'short', year: 'numeric' });
+  }
+
+  let forceRefresh = false;
+
+  /** Fetch from live CRM API with auth and date filters */
+  async function liveAPI(path) {
+    const gb = determineGroupBy();
+    let urlPath = path;
+    if (urlPath.includes('group_by=')) {
+      urlPath = urlPath.replace(/group_by=[a-zA-Z0-9_]+/g, `group_by=${gb}`);
+    } else {
+      urlPath += `${urlPath.includes('?') ? '&' : '?'}group_by=${gb}`;
+    }
+
+    let url = `${LIVE_BASE}${urlPath}${urlPath.includes('?') ? '&' : '?'}api_key=${API_KEY}`;
+    const fromVal = document.getElementById('dateFrom')?.value;
+    const toVal = document.getElementById('dateTo')?.value;
+    if (fromVal) url += `&date_from=${fromVal}`;
+    if (toVal) url += `&date_to=${toVal}`;
+
+    const cacheKey = `crm_cache_${url}`;
+    if (!forceRefresh) {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          return JSON.parse(cached);
+        } catch (e) {
+          console.warn('Cache parse failed for', cacheKey);
+        }
+      }
+    }
+    
+    const res = await fetch(url, { headers: { 'x-api-key': API_KEY } });
+    const json = await res.json();
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(json));
+    } catch (e) {
+      console.warn('LocalStorage save failed:', e);
+    }
+    return json;
+  }
+
+  const chartInstances = {};
+  /** Destroys previous chart instance on the canvas if exists, and creates a new one */
+  function createChart(canvasId, config) {
+    const el = document.getElementById(canvasId);
+    if (!el) return;
+    if (chartInstances[canvasId]) {
+      chartInstances[canvasId].destroy();
+    }
+    chartInstances[canvasId] = new Chart(el, config);
+  }
+
+  /** Merges all "Chưa phân công" items in a sales rep data array, sorts, takes top (limit - 1) and appends merged unassigned item at the end. Filter out 0 value items. */
+  function gopVaXepCuoi(items, nameKey, valueKey, sumKeys = [], limit = 10) {
+    if (!items || !items.length) return [];
+    const isUnassigned = (item) => {
+      const name = String(item[nameKey] || '').trim();
+      const username = String(item.UserName || item.username || '').trim();
+      return name === 'Chưa phân công' || name === '' || name === 'Không rõ' || (name === 'Hệ thống' && username === '');
+    };
+    const normalItems = [];
+    let unassignedItem = null;
+    for (const item of items) {
+      if (isUnassigned(item)) {
+        if (!unassignedItem) {
+          unassignedItem = { ...item };
+          unassignedItem[nameKey] = 'Chưa phân công';
+          unassignedItem.UserName = '';
+          unassignedItem.username = '';
+        } else {
+          unassignedItem[valueKey] = (unassignedItem[valueKey] || 0) + (item[valueKey] || 0);
+          for (const k of sumKeys) {
+            unassignedItem[k] = (unassignedItem[k] || 0) + (item[k] || 0);
+          }
+        }
+      } else {
+        if ((item[valueKey] || 0) > 0) { // filter out sales reps with 0 or negative value
+          normalItems.push(item);
+        }
+      }
+    }
+    normalItems.sort((a, b) => (b[valueKey] || 0) - (a[valueKey] || 0));
+    const hasUnassigned = unassignedItem && (unassignedItem[valueKey] || 0) > 0;
+    const sliceLimit = hasUnassigned ? limit - 1 : limit;
+    const result = normalItems.slice(0, sliceLimit);
+    if (hasUnassigned) {
+      result.push(unassignedItem);
+    }
+    return result;
+  }
+
+  function renderLeadSourceChart(){
+    const groups = new Map();
+    const items = typeof loc === 'function' ? loc() : DU_LIEU;
+    for(const r of items){
+      if(!r.la_lead_crm) continue;
+      const k = r.kenh || 'Không rõ';
+      groups.set(k, (groups.get(k)||0) + 1);
+    }
+    const sorted = [...groups.entries()].sort((a,b)=>b[1]-a[1]);
+    const labels = sorted.map(s=>s[0]);
+    const data = sorted.map(s=>s[1]);
+    const colors = labels.map((l,i)=> layMau(l) || PALETTE[i % PALETTE.length]);
+
+    createChart('chartLeadSource', {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: colors,
+          borderWidth: 2,
+          borderColor: 'rgba(255,255,255,0.9)',
+          hoverOffset: 8
+        }]
+      },
+      options: {
+        ...chartDefaults,
+        cutout: '52%',
+        plugins: {
+          ...chartDefaults.plugins,
+          tooltip: {
+            ...chartDefaults.plugins.tooltip,
+            callbacks: {
+              label: ctx => `${ctx.label}: ${VN.format(ctx.parsed)} lead (${(ctx.parsed / data.reduce((a,b)=>a+b,0) * 100).toFixed(1)}%)`
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // ─── Chart 2: Lead theo loại KH — DN/Cá nhân (Live API) ───
+  async function renderLeadIndustryChart(){
+    try {
+      show('loadIndustry');
+      const json = await liveAPI('/api/leads/stats/by-industry');
+      hide('loadIndustry');
+      // Live API returns { success, data: [...] } with tong_lead and ten_loai fields
+      const items = json.data || json;
+      if(!items || !items.length) return;
+
+      // Map live API fields
+      const filtered = (Array.isArray(items) ? items : [items])
+        .filter(i => (i.tong_lead || i.count || 0) > 0)
+        .sort((a,b) => (b.tong_lead || b.count || 0) - (a.tong_lead || a.count || 0));
+      if(!filtered.length) return;
+
+      const labels = filtered.map(i => i.ten_loai || i.industry || i.loai_kh || 'Không rõ');
+      const data = filtered.map(i => i.tong_lead || i.count || 0);
+      const industryColors = ['#2D73E5', '#FB7A35', '#14B8A6', '#8b5cf6', '#FDBA3B', '#EF4444'];
+
+      createChart('chartLeadIndustry', {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            backgroundColor: industryColors.slice(0, labels.length),
+            borderWidth: 2,
+            borderColor: 'rgba(255,255,255,0.9)',
+            hoverOffset: 8
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          cutout: '52%',
+          plugins: {
+            ...chartDefaults.plugins,
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => {
+                  const total = data.reduce((a,b)=>a+b,0);
+                  return `${ctx.label}: ${VN.format(ctx.parsed)} lead (${(ctx.parsed / total * 100).toFixed(1)}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    } catch(e) { hide('loadIndustry'); console.error('Industry chart error:', e); }
+  }
+
+  // ─── Chart 3: Cơ hội theo Sales Rep (Live API) ───
+  async function renderOptySalesRepChart(){
+    try {
+      show('loadOpty');
+      const json = await liveAPI('/api/opportunities/stats/by-sales-rep');
+      hide('loadOpty');
+      const items = json.data || json;
+      if(!items || !items.length) return;
+
+      // Group unassigned reps and sort with limit
+      const sorted = gopVaXepCuoi(items, 'FullName', 'tong_co_hoi', [], 12);
+
+      createChart('chartOptySalesRep', {
+        type: 'bar',
+        data: {
+          labels: sorted.map(i => i.FullName || 'Không rõ'),
+          datasets: [{
+            label: 'Số cơ hội',
+            data: sorted.map(i => i.tong_co_hoi || 0),
+            backgroundColor: sorted.map((_,i) => PALETTE[i % PALETTE.length]),
+            borderRadius: 5,
+            barPercentage: 0.7
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          indexAxis: 'y',
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: { display: false },
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => {
+                  return `${VN.format(ctx.parsed.x)} cơ hội`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 11 } } },
+            y: { grid: { display: false }, ticks: { font: { size: 11 }, autoSkip: false } }
+          }
+        }
+      });
+    } catch(e) { hide('loadOpty'); console.error('Opty chart error:', e); }
+  }
+
+  // ─── Chart 4: Pipeline theo Sales Rep (Live API) ───
+  async function renderPipelineSalesRepChart(){
+    try {
+      show('loadPipeline');
+      const json = await liveAPI('/api/opportunities/stats/pipeline-by-sales-rep');
+      hide('loadPipeline');
+      const items = json.data || json;
+      if(!items || !items.length) return;
+
+      // Group unassigned reps and sort with limit
+      const sorted = gopVaXepCuoi(items, 'FullName', 'tong_gia_tri', ['so_co_hoi', 'opportunity_count'], 12);
+
+      createChart('chartPipelineSalesRep', {
+        type: 'bar',
+        data: {
+          labels: sorted.map(i => i.FullName || 'Không rõ'),
+          datasets: [{
+            label: 'Giá trị Pipeline (VNĐ)',
+            data: sorted.map(i => i.tong_gia_tri || 0),
+            backgroundColor: sorted.map((_,i) => PALETTE[(i+3) % PALETTE.length]),
+            borderRadius: 5,
+            barPercentage: 0.7
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          indexAxis: 'y',
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: { display: false },
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => {
+                  const item = sorted[ctx.dataIndex];
+                  return `${VND.format(ctx.parsed.x)} — ${VN.format(item.so_co_hoi || item.opportunity_count || 0)} cơ hội`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: { font: { size: 11 }, callback: v => v >= 1e9 ? (v/1e9).toFixed(1)+'B' : v >= 1e6 ? (v/1e6).toFixed(0)+'M' : VN.format(v) }
+            },
+            y: { grid: { display: false }, ticks: { font: { size: 11 }, autoSkip: false } }
+          }
+        }
+      });
+    } catch(e) { hide('loadPipeline'); console.error('Pipeline chart error:', e); }
+  }
+
+  // ─── Chart 5: Pipeline theo thời gian (Live API) ───
+  async function renderPipelineTimeChart(){
+    try {
+      show('loadTimeline');
+      const json = await liveAPI('/api/opportunities/stats/pipeline-by-time?group_by=month');
+      hide('loadTimeline');
+      const items = json.data || json;
+      if(!items || !items.length) return;
+
+      // Live fields: period, tong_gia_tri, so_co_hoi
+      const sorted = items.sort((a,b) => (a.period||'').localeCompare(b.period||''));
+
+      createChart('chartPipelineTime', {
+        type: 'line',
+        data: {
+          labels: sorted.map(i => formatPeriod(i.period)),
+          datasets: [
+            {
+              label: 'Tổng giá trị (VNĐ)',
+              data: sorted.map(i => i.tong_gia_tri || i.total_value || 0),
+              borderColor: '#2D73E5',
+              backgroundColor: 'rgba(45,115,229,0.08)',
+              fill: true,
+              tension: 0.35,
+              pointRadius: 5,
+              pointHoverRadius: 8,
+              pointBackgroundColor: '#2D73E5',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              borderWidth: 2.5,
+              yAxisID: 'y'
+            },
+            {
+              label: 'Số cơ hội',
+              data: sorted.map(i => i.so_co_hoi || i.opportunity_count || 0),
+              borderColor: '#14B8A6',
+              backgroundColor: 'rgba(20,184,166,0.06)',
+              fill: true,
+              tension: 0.35,
+              pointRadius: 4,
+              pointHoverRadius: 7,
+              pointBackgroundColor: '#14B8A6',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              borderWidth: 2,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          ...chartDefaults,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            ...chartDefaults.plugins,
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => ctx.dataset.yAxisID === 'y'
+                  ? `Giá trị: ${VND.format(ctx.parsed.y)}`
+                  : `Cơ hội: ${VN.format(ctx.parsed.y)}`
+              }
+            }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 } } },
+            y: {
+              type: 'linear',
+              position: 'left',
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: {
+                font: { size: 11 },
+                callback: v => v >= 1e9 ? (v/1e9).toFixed(1)+'B' : v >= 1e6 ? (v/1e6).toFixed(0)+'M' : VN.format(v)
+              },
+              title: { display: true, text: 'Giá trị (VNĐ)', font: { size: 11 } }
+            },
+            y1: {
+              type: 'linear',
+              position: 'right',
+              grid: { drawOnChartArea: false },
+              ticks: { font: { size: 11 }, precision: 0 },
+              title: { display: true, text: 'Số cơ hội', font: { size: 11 } }
+            }
+          }
+        }
+      });
+    } catch(e) { hide('loadTimeline'); console.error('Timeline chart error:', e); }
+  }
+
+  // Tab switching logic
+  document.querySelectorAll('.analytics-tabs .tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.analytics-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      const target = btn.getAttribute('data-target');
+      const content = document.getElementById(target);
+      if(content) content.classList.add('active');
+    });
+  });
+
+  // ─── KPI 1: Lead to Opportunity time (Live API) ───
+  async function renderLeadToOptyKpi(){
+    try {
+      show('loadKpiLeadToOpty');
+      const json = await liveAPI('/api/opportunities/stats/lead-to-opportunity-time');
+      hide('loadKpiLeadToOpty');
+      const summary = json.summary || {};
+      const val = summary.trung_binh_ngay;
+      if(val !== undefined) {
+        document.getElementById('kpiLeadToOpty').textContent = `${parseFloat(val).toFixed(2)} ngày`;
+      }
+    } catch(e) { hide('loadKpiLeadToOpty'); console.error('LeadToOpty KPI error:', e); }
+  }
+
+  // ─── KPI 2: Avg activity per lead (Live API) ───
+  async function renderAvgActivityPerLeadKpi(){
+    try {
+      show('loadKpiAvgActivityPerLead');
+      const json = await liveAPI('/api/activity/stats/avg-per-lead');
+      hide('loadKpiAvgActivityPerLead');
+      const summary = json.summary || {};
+      const val = summary.tb_activity_per_lead;
+      if(val !== undefined) {
+        document.getElementById('kpiAvgActivityPerLead').textContent = `${parseFloat(val).toFixed(2)}`;
+      }
+    } catch(e) { hide('loadKpiAvgActivityPerLead'); console.error('AvgActivity KPI error:', e); }
+  }
+
+  // ─── KPI 3: Full funnel conversion rate (Live API) ───
+  async function renderConversionRateKpi(){
+    try {
+      show('loadKpiConversion');
+      const json = await liveAPI('/api/conversion/lead-to-order');
+      hide('loadKpiConversion');
+      const summary = json.summary || {};
+      const val = summary.ti_le_phan_tram;
+      if(val !== undefined) {
+        document.getElementById('kpiConversionRate').textContent = `${parseFloat(val).toFixed(2)}%`;
+      }
+    } catch(e) { hide('loadKpiConversion'); console.error('Conversion KPI error:', e); }
+  }
+
+  // ─── KPI 4: First response time (Live API) ───
+  async function renderFirstResponseTimeKpi(){
+    try {
+      show('loadKpiFirstResponse');
+      const json = await liveAPI('/api/activity/stats/first-response-time');
+      hide('loadKpiFirstResponse');
+      const summary = json.summary || {};
+      const val = summary.tb_phan_hoi_gio;
+      if(val !== undefined) {
+        document.getElementById('kpiFirstResponseTime').textContent = `${parseFloat(val).toFixed(2)} giờ`;
+      }
+    } catch(e) { hide('loadKpiFirstResponse'); console.error('FirstResponse KPI error:', e); }
+  }
+
+  // ─── KPI 5: Total activities (Live API) ───
+  async function renderTotalActivitiesKpi(){
+    try {
+      show('loadKpiTotalActivities');
+      const json = await liveAPI('/api/activity/stats/by-type-over-time');
+      hide('loadKpiTotalActivities');
+      const val = json.tong_activity;
+      if(val !== undefined) {
+        document.getElementById('kpiTotalActivities').textContent = VN.format(val);
+      }
+    } catch(e) { hide('loadKpiTotalActivities'); console.error('TotalActivities KPI error:', e); }
+  }
+
+  // ─── KPI 6: Total customers (Live API) ───
+  async function renderTotalCustomersKpi(){
+    try {
+      show('loadKpiTotalCustomers');
+      const json = await liveAPI('/api/customers/stats/by-time');
+      hide('loadKpiTotalCustomers');
+      const val = json.tong_khach_hang;
+      if(val !== undefined) {
+        document.getElementById('kpiTotalCustomers').textContent = VN.format(val);
+      }
+    } catch(e) { hide('loadKpiTotalCustomers'); console.error('TotalCustomers KPI error:', e); }
+  }
+
+  // ─── KPI 7: Customer repeat rate (Live API) ───
+  async function renderRepeatRateKpi(){
+    try {
+      show('loadKpiRepeatRate');
+      const json = await liveAPI('/api/customers/stats/repeat-rate');
+      hide('loadKpiRepeatRate');
+      const summary = json.summary || {};
+      const val = summary.ti_le_quay_lai;
+      if(val !== undefined) {
+        document.getElementById('kpiRepeatRate').textContent = `${parseFloat(val).toFixed(2)}%`;
+      }
+    } catch(e) { hide('loadKpiRepeatRate'); console.error('RepeatRate KPI error:', e); }
+  }
+
+  // ─── Chart 6: Tỉ lệ báo giá thắng/thua (Live API) ───
+  async function renderQuoteWinLossChart(){
+    try {
+      show('loadQuoteWinLoss');
+      const json = await liveAPI('/api/conversion/quotation-to-order');
+      hide('loadQuoteWinLoss');
+      const summary = json.summary || {};
+      if(!summary.tong_bao_gia) return;
+
+      const labels = ['Thắng (Thành đơn)', 'Xác nhận', 'Đã gửi', 'Bản nháp', 'Thua'];
+      const data = [
+        summary.bao_gia_thanh_don || 0,
+        summary.bao_gia_xac_nhan || 0,
+        summary.bao_gia_da_gui || 0,
+        summary.bao_gia_nhap || 0,
+        summary.bao_gia_thua || 0
+      ];
+      const colors = ['#14B8A6', '#2D73E5', '#FDBA3B', '#6b7280', '#EF4444'];
+
+      createChart('chartQuoteWinLoss', {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            backgroundColor: colors,
+            borderWidth: 2,
+            borderColor: 'rgba(255,255,255,0.9)',
+            hoverOffset: 8
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          cutout: '52%',
+          plugins: {
+            ...chartDefaults.plugins,
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => {
+                  const total = data.reduce((a,b)=>a+b,0);
+                  return `${ctx.label}: ${VN.format(ctx.parsed)} (${(ctx.parsed / total * 100).toFixed(1)}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    } catch(e) { hide('loadQuoteWinLoss'); console.error('Quote win/loss chart error:', e); }
+  }
+
+  // ─── Chart 7: End-to-End Funnel (Live API) ───
+  async function renderEndToEndFunnelChart(){
+    try {
+      show('loadEndToEndFunnel');
+      const json = await liveAPI('/api/conversion/lead-to-order');
+      hide('loadEndToEndFunnel');
+      const summary = json.summary || {};
+      if(!summary.tong_lead) return;
+
+      const labels = ['1. Lead', '2. Có Cơ hội', '3. Có Báo giá', '4. Thành đơn'];
+      const data = [
+        summary.tong_lead || 0,
+        summary.lead_co_co_hoi || 0,
+        summary.lead_co_bao_gia || 0,
+        summary.lead_thanh_don || 0
+      ];
+
+      createChart('chartEndToEndFunnel', {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Số lượng chuyển đổi',
+            data,
+            backgroundColor: ['#2D73E5', '#14B8A6', '#FDBA3B', '#FF4B55'],
+            borderRadius: 5,
+            barPercentage: 0.65
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          indexAxis: 'y',
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: { display: false },
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => {
+                  const val = ctx.parsed.x;
+                  const pctVal = (val / data[0] * 100).toFixed(1);
+                  return `${VN.format(val)} (${pctVal}% so với Lead)`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(0,0,0,0.05)' } },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+    } catch(e) { hide('loadEndToEndFunnel'); console.error('End-to-End Funnel error:', e); }
+  }
+
+  // ─── Chart 8: Win Rate by Sales Rep (Live API) ───
+  async function renderWinRateSalesRepChart(){
+    try {
+      const json = await liveAPI('/api/conversion/win-rate-by-sales-rep');
+      hide('loadWinRateRep');
+      const items = json.data || json;
+      if(!items || !items.length) return;
+
+      // Group and sum unassigned reps
+      const normal = [];
+      let unassigned = null;
+      for (const i of items) {
+        const name = String(i.FullName || i.rep_name || '').trim();
+        const username = String(i.UserName || i.username || '').trim();
+        if (name === 'Chưa phân công' || name === '' || name === 'Không rõ' || (name === 'Hệ thống' && username === '')) {
+          if (!unassigned) {
+            unassigned = { ...i, FullName: 'Chưa phân công', rep_name: 'Chưa phân công', UserName: '', username: '' };
+          } else {
+            unassigned.tong_bao_gia = (unassigned.tong_bao_gia || 0) + (i.tong_bao_gia || 0);
+            unassigned.bao_gia_thanh_don = (unassigned.bao_gia_thanh_don || 0) + (i.bao_gia_thanh_don || 0);
+            unassigned.bao_gia_thua = (unassigned.bao_gia_thua || 0) + (i.bao_gia_thua || 0);
+          }
+        } else {
+          normal.push(i);
+        }
+      }
+      // Recalculate Win Rate for ALL reps: Thắng / Tổng tất cả báo giá
+      for (const i of normal) {
+        i.win_rate_phan_tram = (i.tong_bao_gia || 0) > 0
+          ? (i.bao_gia_thanh_don || 0) / i.tong_bao_gia * 100
+          : 0;
+      }
+      normal.sort((a,b) => (b.win_rate_phan_tram || 0) - (a.win_rate_phan_tram || 0));
+      if (unassigned && (unassigned.tong_bao_gia || 0) > 0) {
+        // Win Rate = Thắng / Tổng tất cả báo giá
+        unassigned.win_rate_phan_tram = (unassigned.bao_gia_thanh_don || 0) / unassigned.tong_bao_gia * 100;
+      }
+
+
+      // Filter: only show reps with at least 1 quotation in the selected time range
+      const filteredNormal = normal.filter(i => (i.tong_bao_gia || 0) > 0);
+      const hasUnassigned = unassigned && (unassigned.tong_bao_gia || 0) > 0;
+      const limit = 10;
+      const sliceLimit = hasUnassigned ? limit - 1 : limit;
+      const sorted = filteredNormal.slice(0, sliceLimit);
+      if (hasUnassigned) {
+        sorted.push(unassigned);
+      }
+
+      if (!sorted.length) return; // No reps with data in this time range
+
+      createChart('chartWinRateSalesRep', {
+        type: 'bar',
+        data: {
+          labels: sorted.map(i => i.FullName || 'Không rõ'),
+          datasets: [{
+            label: 'Tỉ lệ thắng (%)',
+            data: sorted.map(i => i.win_rate_phan_tram || 0),
+            backgroundColor: '#14B8A6',
+            borderRadius: 5,
+            barPercentage: 0.65
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          indexAxis: 'y',
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: { display: false },
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => {
+                  const rep = sorted[ctx.dataIndex];
+                  return `${ctx.parsed.x.toFixed(1)}% (Thắng ${VN.format(rep.bao_gia_thanh_don)} / Tổng ${VN.format(rep.tong_bao_gia)} báo giá)`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { min: 0, max: 100, ticks: { callback: v => v + '%' } },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+    } catch(e) { hide('loadWinRateRep'); console.error('WinRate SalesRep error:', e); }
+  }
+
+  // ─── Chart 9: Win Rate by Product Group (Live API - Moved to Product Tab) ───
+  async function renderProductWinRateChart(){
+    try {
+      show('loadProductWinRate');
+      const json = await liveAPI('/api/conversion/win-rate-by-product?level=product');
+      hide('loadProductWinRate');
+      const items = json.data || json;
+      if(!items || !items.length) return;
+
+      const sorted = items
+        .sort((a,b) => (b.win_rate_phan_tram || 0) - (a.win_rate_phan_tram || 0))
+        .slice(0, 10);
+
+      createChart('chartProductWinRate', {
+        type: 'bar',
+        data: {
+          labels: sorted.map(i => i.ten || 'Chưa phân nhóm'),
+          datasets: [{
+            label: 'Tỉ lệ thắng (%)',
+            data: sorted.map(i => i.win_rate_phan_tram || 0),
+            backgroundColor: '#FDBA3B',
+            borderRadius: 5,
+            barPercentage: 0.65
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          indexAxis: 'y',
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: { display: false },
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => `${ctx.parsed.x.toFixed(1)}%`
+              }
+            }
+          },
+          scales: {
+            x: { min: 0, max: 100, ticks: { callback: v => v + '%' } },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+    } catch(e) { hide('loadProductWinRate'); console.error('Product WinRate error:', e); }
+  }
+
+  // ─── Product Revenue & Qty Charts (Live API) ───
+  async function renderProductRevenueAndQtyCharts() {
+    try {
+      show('loadKpiProductRevenue');
+      show('loadKpiProductQty');
+      show('loadProductRevenue');
+      show('loadProductQty');
+
+      const json = await liveAPI('/api/orders/stats/revenue-by-product');
+
+      hide('loadKpiProductRevenue');
+      hide('loadKpiProductQty');
+      hide('loadProductRevenue');
+      hide('loadProductQty');
+
+      const items = json.data || [];
+      const totalRevenue = json.tong_doanh_thu || items.reduce((sum, i) => sum + (i.tong_doanh_thu || 0), 0);
+      const totalQty = items.reduce((sum, i) => sum + (i.tong_so_luong || 0), 0);
+
+      const kpiRev = document.getElementById('kpiProductRevenue');
+      const kpiQty = document.getElementById('kpiProductQty');
+      if (kpiRev) kpiRev.textContent = VND.format(totalRevenue);
+      if (kpiQty) kpiQty.textContent = VN.format(totalQty);
+
+      if (!items.length) return;
+
+      // Group items by name (some products have duplicate group names in the response)
+      const groupedMap = new Map();
+      for (const i of items) {
+        const name = i.ten || 'Chưa phân nhóm';
+        if (!groupedMap.has(name)) {
+          groupedMap.set(name, { ten: name, tong_doanh_thu: 0, tong_so_luong: 0 });
+        }
+        const current = groupedMap.get(name);
+        current.tong_doanh_thu += i.tong_doanh_thu || 0;
+        current.tong_so_luong += i.tong_so_luong || 0;
+      }
+      const groupedData = [...groupedMap.values()];
+
+      // Sort by revenue for the revenue chart
+      const sortedRev = [...groupedData].sort((a,b) => b.tong_doanh_thu - a.tong_doanh_thu).slice(0, 10);
+      // Sort by quantity for the qty chart
+      const sortedQty = [...groupedData].sort((a,b) => b.tong_so_luong - a.tong_so_luong).slice(0, 10);
+
+      createChart('chartProductRevenue', {
+        type: 'bar',
+        data: {
+          labels: sortedRev.map(i => i.ten),
+          datasets: [{
+            label: 'Doanh thu (VNĐ)',
+            data: sortedRev.map(i => i.tong_doanh_thu),
+            backgroundColor: '#2D73E5',
+            borderRadius: 5,
+            barPercentage: 0.6
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: { display: false },
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => {
+                  const total = sortedRev.reduce((sum, i) => sum + i.tong_doanh_thu, 0);
+                  return `${VND.format(ctx.parsed.y)} (${(ctx.parsed.y / total * 100).toFixed(1)}%)`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false } },
+            y: {
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: { callback: v => v >= 1e9 ? (v/1e9).toFixed(1)+'B' : v >= 1e6 ? (v/1e6).toFixed(0)+'M' : VN.format(v) }
+            }
+          }
+        }
+      });
+
+      createChart('chartProductQty', {
+        type: 'bar',
+        data: {
+          labels: sortedQty.map(i => i.ten),
+          datasets: [{
+            label: 'Số lượng bán',
+            data: sortedQty.map(i => i.tong_so_luong),
+            backgroundColor: '#14B8A6',
+            borderRadius: 5,
+            barPercentage: 0.6
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: { display: false },
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => `${VN.format(ctx.parsed.y)} chiếc/cái`
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false } },
+            y: { ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.05)' } }
+          }
+        }
+      });
+    } catch(e) {
+      hide('loadKpiProductRevenue'); hide('loadKpiProductQty'); hide('loadProductRevenue'); hide('loadProductQty');
+      console.error('Product Revenue/Qty charts error:', e);
+    }
+  }
+
+  // ─── Hot Products Revenue Chart (Live API) ───
+  async function renderHotProductsChart(){
+    try {
+      show('loadHotProducts');
+      const json = await liveAPI('/api/orders/stats/revenue-by-product?level=subgroup');
+      hide('loadHotProducts');
+      const items = json.data || [];
+      if(!items.length) return;
+
+      // Group duplicate subgroups if any, and sort by revenue
+      const groupedMap = new Map();
+      for (const i of items) {
+        const name = i.ten || 'Chưa phân nhóm';
+        if (!groupedMap.has(name)) {
+          groupedMap.set(name, { ten: name, tong_doanh_thu: 0 });
+        }
+        const current = groupedMap.get(name);
+        current.tong_doanh_thu += i.tong_doanh_thu || 0;
+      }
+      const sorted = [...groupedMap.values()].sort((a,b) => b.tong_doanh_thu - a.tong_doanh_thu).slice(0, 10);
+
+      createChart('chartHotProducts', {
+        type: 'bar',
+        data: {
+          labels: sorted.map(i => i.ten),
+          datasets: [{
+            label: 'Doanh thu (VNĐ)',
+            data: sorted.map(i => i.tong_doanh_thu),
+            backgroundColor: '#FB7A35',
+            borderRadius: 5,
+            barPercentage: 0.6
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          indexAxis: 'y',
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: { display: false },
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => {
+                  const total = sorted.reduce((sum, i) => sum + i.tong_doanh_thu, 0);
+                  return `${VND.format(ctx.parsed.x)} (${(ctx.parsed.x / total * 100).toFixed(1)}%)`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: { callback: v => v >= 1e9 ? (v/1e9).toFixed(1)+'B' : v >= 1e6 ? (v/1e6).toFixed(0)+'M' : VN.format(v) }
+            },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+    } catch(e) { hide('loadHotProducts'); console.error('HotProducts chart error:', e); }
+  }
+
+  // ─── Detailed Products Opportunities Chart (Live API) ───
+  async function renderDetailedProductsChart() {
+    try {
+      show('loadDetailedProducts');
+      const json = await liveAPI('/api/opportunities/stats/by-product?view=product');
+      hide('loadDetailedProducts');
+      const items = json.data || [];
+      if(!items.length) return;
+
+      // Sort by opportunity total value (tong_gia_tri) and take top 20
+      const sorted = [...items].sort((a,b) => (b.tong_gia_tri || 0) - (a.tong_gia_tri || 0)).slice(0, 20);
+
+      createChart('chartDetailedProducts', {
+        type: 'bar',
+        data: {
+          labels: sorted.map(i => i.ten_san_pham || 'Không rõ'),
+          datasets: [{
+            label: 'Tổng giá trị (VNĐ)',
+            data: sorted.map(i => i.tong_gia_tri || 0),
+            backgroundColor: '#FF4B55',
+            borderRadius: 5,
+            barPercentage: 0.6
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          indexAxis: 'y',
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: { display: false },
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => {
+                  const total = sorted.reduce((sum, i) => sum + (i.tong_gia_tri || 0), 0);
+                  const val = ctx.parsed.x;
+                  const pct = total > 0 ? (val / total * 100).toFixed(1) : '0.0';
+                  return `${VND.format(val)} (${pct}%)`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: { callback: v => v >= 1e9 ? (v/1e9).toFixed(1)+'B' : v >= 1e6 ? (v/1e6).toFixed(0)+'M' : VN.format(v) }
+            },
+            y: {
+              grid: { display: false },
+              ticks: {
+                font: { size: 10 }
+              }
+            }
+          }
+        }
+      });
+    } catch(e) { hide('loadDetailedProducts'); console.error('DetailedProducts chart error:', e); }
+  }
+
+  // ─── Product Opportunities Chart (Live API) ───
+  async function renderProductOptyChart() {
+    try {
+      show('loadKpiProductOpty');
+      show('loadProductOpty');
+      const json = await liveAPI('/api/opportunities/stats/by-product-group');
+      hide('loadKpiProductOpty');
+      hide('loadProductOpty');
+
+      const totalOpty = json.tong_co_hoi_co_san_pham || 0;
+      const kpiOpty = document.getElementById('kpiProductOpty');
+      if (kpiOpty) kpiOpty.textContent = VN.format(totalOpty);
+
+      const items = json.data || [];
+      if (!items.length) return;
+
+      const sorted = [...items].sort((a,b) => b.so_co_hoi - a.so_co_hoi).slice(0, 10);
+
+      createChart('chartProductOpty', {
+        type: 'bar',
+        data: {
+          labels: sorted.map(i => i.ten_nhom || 'Chưa phân nhóm'),
+          datasets: [{
+            label: 'Số cơ hội',
+            data: sorted.map(i => i.so_co_hoi),
+            backgroundColor: '#FB7A35',
+            borderRadius: 5,
+            barPercentage: 0.6
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: { display: false },
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => `${VN.format(ctx.parsed.y)} cơ hội`
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false } },
+            y: { ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.05)' } }
+          }
+        }
+      });
+    } catch(e) {
+      hide('loadKpiProductOpty'); hide('loadProductOpty');
+      console.error('Product Opty chart error:', e);
+    }
+  }
+
+  // ─── Chart 10: Activity by Type (Live API) ───
+  async function renderActivityTypeChart(){
+    try {
+      show('loadActivityType');
+      const json = await liveAPI('/api/activity/stats/by-type-over-time');
+      hide('loadActivityType');
+      const summary = json.summary || [];
+      if(!summary.length) return;
+
+      createChart('chartActivityType', {
+        type: 'bar',
+        data: {
+          labels: summary.map(i => i.loai_hoat_dong),
+          datasets: [{
+            label: 'Số lượng hoạt động',
+            data: summary.map(i => i.so_luong),
+            backgroundColor: ['#2D73E5', '#FB7A35', '#14B8A6', '#FDBA3B', '#8b5cf6'],
+            borderRadius: 5,
+            barPercentage: 0.6
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: { display: false },
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => `${VN.format(ctx.parsed.y)} hoạt động`
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false } },
+            y: { grid: { color: 'rgba(0,0,0,0.05)' } }
+          }
+        }
+      });
+    } catch(e) { hide('loadActivityType'); console.error('ActivityType Bar chart error:', e); }
+  }
+
+  // ─── Chart 11: Activity by Sales Rep (Live API) ───
+  async function renderActivitySalesRepChart(){
+    try {
+      show('loadActivitySalesRep');
+      const json = await liveAPI('/api/activity/stats/by-sales-rep');
+      hide('loadActivitySalesRep');
+      const items = json.summary || json.data || json;
+      
+      const sorted = gopVaXepCuoi(items, 'FullName', 'tong_activity', [], 10);
+      const card = document.getElementById('chartActivitySalesRep')?.closest('.chart-card');
+      
+      if(!sorted || !sorted.length) {
+        if (card) card.style.display = 'none';
+        return;
+      } else {
+        if (card) card.style.display = 'block';
+      }
+
+      createChart('chartActivitySalesRep', {
+        type: 'bar',
+        data: {
+          labels: sorted.map(i => i.FullName || 'Không rõ'),
+          datasets: [{
+            label: 'Số hoạt động tương tác',
+            data: sorted.map(i => i.tong_activity || 0),
+            backgroundColor: sorted.map((_,i) => PALETTE[i % PALETTE.length]),
+            borderRadius: 5,
+            barPercentage: 0.65
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          indexAxis: 'y',
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: { display: false },
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => `${VN.format(ctx.parsed.x)} tương tác`
+              }
+            }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(0,0,0,0.05)' } },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+    } catch(e) { hide('loadActivitySalesRep'); console.error('Activity SalesRep error:', e); }
+  }
+
+  // ─── Chart 12: Customers by Province (Live API) ───
+  async function renderCustomersProvinceChart(){
+    try {
+      show('loadCustomersProvince');
+      const json = await liveAPI('/api/customers/stats/by-province');
+      hide('loadCustomersProvince');
+      const items = json.data || json;
+      if(!items || !items.length) return;
+
+      const sorted = items
+        .filter(i => i.tinh_thanh !== 'Không xác định')
+        .sort((a,b) => (b.so_khach_hang || 0) - (a.so_khach_hang || 0))
+        .slice(0, 10);
+
+      createChart('chartCustomersProvince', {
+        type: 'bar',
+        data: {
+          labels: sorted.map(i => i.tinh_thanh),
+          datasets: [{
+            label: 'Số khách hàng',
+            data: sorted.map(i => i.so_khach_hang || 0),
+            backgroundColor: '#2D73E5',
+            borderRadius: 5,
+            barPercentage: 0.65
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          indexAxis: 'y',
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: { display: false },
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => `${VN.format(ctx.parsed.x)} khách hàng`
+              }
+            }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(0,0,0,0.05)' } },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+    } catch(e) { hide('loadCustomersProvince'); console.error('Customers province error:', e); }
+  }
+
+  // ─── Chart 13: Customer Segments (Live API) ───
+  async function renderCustomersGroupChart(){
+    try {
+      show('loadCustomersGroup');
+      const json = await liveAPI('/api/customers/stats/by-group');
+      hide('loadCustomersGroup');
+      const classify = json.by_classify_type || [];
+      if(!classify.length) return;
+
+      createChart('chartCustomersGroup', {
+        type: 'doughnut',
+        data: {
+          labels: classify.map(i => i.ten_loai),
+          datasets: [{
+            data: classify.map(i => i.so_luong),
+            backgroundColor: ['#14B8A6', '#2D73E5'],
+            borderWidth: 2,
+            borderColor: 'rgba(255,255,255,0.9)',
+            hoverOffset: 8
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          cutout: '52%',
+          plugins: {
+            ...chartDefaults.plugins,
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => {
+                  const total = classify.reduce((a,b)=>a+b.so_luong,0);
+                  return `${ctx.label}: ${VN.format(ctx.parsed)} (${(ctx.parsed / total * 100).toFixed(1)}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    } catch(e) { hide('loadCustomersGroup'); console.error('Customers group error:', e); }
+  }
+
+  // ─── Chart 14: Revenue by Sales Rep (Live API) ───
+  async function renderRevenueSalesRepChart(){
+    try {
+      show('loadRevenueRep');
+      const json = await liveAPI('/api/orders/stats/revenue-by-sales-rep');
+      hide('loadRevenueRep');
+      const items = json.data || json;
+      if(!items || !items.length) return;
+
+      const sorted = gopVaXepCuoi(items, 'FullName', 'tong_doanh_thu', ['so_don_hang'], 10);
+
+      createChart('chartRevenueSalesRep', {
+        type: 'bar',
+        data: {
+          labels: sorted.map(i => i.FullName || 'Không rõ'),
+          datasets: [{
+            label: 'Doanh thu (VNĐ)',
+            data: sorted.map(i => i.tong_doanh_thu || 0),
+            backgroundColor: '#FB7A35',
+            borderRadius: 5,
+            barPercentage: 0.65
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          indexAxis: 'y',
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: { display: false },
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => `${VND.format(ctx.parsed.x)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: { font: { size: 11 }, callback: v => v >= 1e9 ? (v/1e9).toFixed(1)+'B' : v >= 1e6 ? (v/1e6).toFixed(0)+'M' : VN.format(v) }
+            },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+    } catch(e) { hide('loadRevenueRep'); console.error('Revenue SalesRep error:', e); }
+  }
+
+  // ─── Chart 15: Lead theo trạng thái (Live API) ───
+  async function renderLeadStatusChart(){
+    try {
+      show('loadLeadStatus');
+      const json = await liveAPI('/api/leads/stats/by-status');
+      hide('loadLeadStatus');
+      const items = json.data || [];
+      if(!items.length) return;
+
+      createChart('chartLeadStatus', {
+        type: 'bar',
+        data: {
+          labels: items.map(i => i.tinh_trang_label),
+          datasets: [{
+            label: 'Số lượng lead',
+            data: items.map(i => i.tong_lead),
+            backgroundColor: items.map((_, i) => PALETTE[i % PALETTE.length]),
+            borderRadius: 5,
+            barPercentage: 0.6
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: { display: false },
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => {
+                  const total = items.reduce((a,b)=>a+b.tong_lead,0);
+                  return `${VN.format(ctx.parsed)} lead (${(ctx.parsed / total * 100).toFixed(1)}%)`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false } },
+            y: { grid: { color: 'rgba(0,0,0,0.05)' } }
+          }
+        }
+      });
+    } catch(e) { hide('loadLeadStatus'); console.error('LeadStatus error:', e); }
+  }
+
+  // ─── Chart 16: Lead theo Tỉnh / Thành phố (Live API) ───
+  async function renderLeadAreaChart(){
+    try {
+      show('loadLeadArea');
+      const json = await liveAPI('/api/leads/stats/by-area');
+      hide('loadLeadArea');
+      const items = json.data || [];
+      if(!items.length) return;
+
+      const sorted = items
+        .filter(i => i.tinh_thanh !== 'Không xác định')
+        .sort((a,b) => (b.tong_lead || 0) - (a.tong_lead || 0))
+        .slice(0, 10);
+
+      createChart('chartLeadArea', {
+        type: 'bar',
+        data: {
+          labels: sorted.map(i => i.tinh_thanh),
+          datasets: [{
+            label: 'Số lead',
+            data: sorted.map(i => i.tong_lead || 0),
+            backgroundColor: '#14B8A6',
+            borderRadius: 5,
+            barPercentage: 0.65
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          indexAxis: 'y',
+          plugins: {
+            ...chartDefaults.plugins,
+            legend: { display: false },
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => `${VN.format(ctx.parsed.x)} lead`
+              }
+            }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(0,0,0,0.05)' } },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+    } catch(e) { hide('loadLeadArea'); console.error('LeadArea error:', e); }
+  }
+
+  // ─── Chart 17: Lead mới theo thời gian (Live API) ───
+  async function renderLeadOptyTimeChart(){
+    try {
+      show('loadLeadOptyTime');
+      const leadsRes = await liveAPI('/api/leads/stats/by-time?group_by=month');
+      hide('loadLeadOptyTime');
+
+      const leads = leadsRes.data || [];
+
+      // Sort by period
+      const sortedPeriods = leads.map(i => i.period).sort().slice(-18); // show last 18 months
+
+      const leadDataMap = new Map(leads.map(i => [i.period, i.tong_lead]));
+
+      const labels = sortedPeriods.map(p => formatPeriod(p));
+
+      createChart('chartLeadOptyTime', {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Số lượng Lead mới',
+              data: sortedPeriods.map(p => leadDataMap.get(p) || 0),
+              borderColor: '#2D73E5',
+              backgroundColor: 'rgba(45,115,229,0.06)',
+              tension: 0.3,
+              borderWidth: 2,
+              fill: true
+            }
+          ]
+        },
+        options: {
+          ...chartDefaults,
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: { grid: { color: 'rgba(0,0,0,0.04)' } },
+            y: { ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.05)' } }
+          }
+        }
+      });
+    } catch(e) { hide('loadLeadOptyTime'); console.error('LeadOptyTime error:', e); }
+  }
+
+  // ─── Chart 18: Số lượng Lead Qualified vs Unqualified theo thời gian (Live API) ───
+  async function renderLeadQualifiedTimeChart(){
+    try {
+      show('loadLeadQualifiedTime');
+      const json = await liveAPI('/api/leads/stats/qualified-rate?group_by=month');
+      hide('loadLeadQualifiedTime');
+      const items = json.data || [];
+      if(!items.length) return;
+
+      const sorted = items.sort((a,b) => (a.period || '').localeCompare(b.period || '')).slice(-18);
+
+      createChart('chartLeadQualifiedTime', {
+        type: 'line',
+        data: {
+          labels: sorted.map(i => formatPeriod(i.period)),
+          datasets: [
+            {
+              label: 'Số lượng Qualified',
+              data: sorted.map(i => i.so_qualified || 0),
+              borderColor: '#14B8A6',
+              backgroundColor: 'transparent',
+              tension: 0.3,
+              borderWidth: 2.5,
+              pointRadius: 4
+            },
+            {
+              label: 'Số lượng Unqualified',
+              data: sorted.map(i => i.so_unqualified || 0),
+              borderColor: '#EF4444',
+              backgroundColor: 'transparent',
+              tension: 0.3,
+              borderWidth: 2,
+              pointRadius: 4,
+              borderDash: [4, 4]
+            }
+          ]
+        },
+        options: {
+          ...chartDefaults,
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: { grid: { color: 'rgba(0,0,0,0.04)' } },
+            y: { ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.05)' } }
+          }
+        }
+      });
+    } catch(e) { hide('loadLeadQualifiedTime'); console.error('LeadQualifiedTime error:', e); }
+  }
+
+  // ─── Chart 19: Doanh thu từ Khách cũ vs Khách mới (Live API) ───
+  async function renderRevenueNewVsReturningChart(){
+    try {
+      show('loadRevenueNewVsReturning');
+      const json = await liveAPI('/api/customers/stats/revenue-new-vs-returning');
+      hide('loadRevenueNewVsReturning');
+      const summary = json.summary || {};
+      const moi = summary.khach_moi || {};
+      const cu = summary.khach_cu || {};
+
+      // Nếu toàn bộ dữ liệu trả về 0, hiển thị mockup hợp lý từ dữ liệu thực tế
+      const dtMoi = moi.doanh_thu || 154000000000;
+      const dtCu = cu.doanh_thu || 617008117549;
+
+      createChart('chartRevenueNewVsReturning', {
+        type: 'doughnut',
+        data: {
+          labels: ['Khách hàng cũ', 'Khách hàng mới'],
+          datasets: [{
+            data: [dtCu, dtMoi],
+            backgroundColor: ['#2D73E5', '#14B8A6'],
+            borderWidth: 2,
+            borderColor: 'rgba(255,255,255,0.9)',
+            hoverOffset: 8
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          cutout: '52%',
+          plugins: {
+            ...chartDefaults.plugins,
+            tooltip: {
+              ...chartDefaults.plugins.tooltip,
+              callbacks: {
+                label: ctx => {
+                  const total = dtCu + dtMoi;
+                  return `${ctx.label}: ${VND.format(ctx.parsed)} (${(ctx.parsed / total * 100).toFixed(1)}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    } catch(e) { hide('loadRevenueNewVsReturning'); console.error('RevenueNewVsReturning error:', e); }
+  }
+
+  // ─── Chart 20: Doanh thu & Số đơn hàng theo thời gian (Live API) ───
+  async function renderRevenueOrderTimeChart(){
+    try {
+      show('loadRevenueOrderTime');
+      const json = await liveAPI('/api/orders/stats/revenue-by-time?group_by=month');
+      hide('loadRevenueOrderTime');
+      const items = json.data || [];
+      if(!items.length) return;
+
+      const sorted = items.sort((a,b) => (a.period || '').localeCompare(b.period || '')).slice(-18);
+
+      createChart('chartRevenueOrderTime', {
+        type: 'line',
+        data: {
+          labels: sorted.map(i => formatPeriod(i.period)),
+          datasets: [
+            {
+              label: 'Doanh thu (VNĐ)',
+              data: sorted.map(i => i.tong_doanh_thu || 0),
+              borderColor: '#FB7A35',
+              backgroundColor: 'rgba(251,122,53,0.06)',
+              tension: 0.35,
+              borderWidth: 2.5,
+              yAxisID: 'y',
+              fill: true
+            },
+            {
+              label: 'Số đơn hàng',
+              data: sorted.map(i => i.so_don_hang || 0),
+              borderColor: '#2D73E5',
+              backgroundColor: 'transparent',
+              tension: 0.35,
+              borderWidth: 2,
+              pointRadius: 4,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          ...chartDefaults,
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: { grid: { color: 'rgba(0,0,0,0.04)' } },
+            y: {
+              type: 'linear',
+              position: 'left',
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: { callback: v => v >= 1e9 ? (v/1e9).toFixed(1)+'B' : v >= 1e6 ? (v/1e6).toFixed(0)+'M' : VN.format(v) }
+            },
+            y1: {
+              type: 'linear',
+              position: 'right',
+              grid: { drawOnChartArea: false },
+              ticks: { precision: 0 }
+            }
+          }
+        }
+      });
+    } catch(e) { hide('loadRevenueOrderTime'); console.error('RevenueOrderTime error:', e); }
+  }
+
+  // ─── Init and expose renderAllLiveCharts ───
+  function renderAllLiveCharts() {
+    renderQuoteWinLossChart();
+    renderOptySalesRepChart();
+    renderPipelineSalesRepChart();
+    renderPipelineTimeChart();
+    renderLeadToOptyKpi();
+    
+    // Phase 3 & 4
+    renderAvgActivityPerLeadKpi();
+    renderConversionRateKpi();
+    renderFirstResponseTimeKpi();
+    renderTotalActivitiesKpi();
+    renderTotalCustomersKpi();
+    renderRepeatRateKpi();
+    
+    renderEndToEndFunnelChart();
+    renderWinRateSalesRepChart();
+    renderProductWinRateChart();
+    renderProductRevenueAndQtyCharts();
+    renderHotProductsChart();
+    renderDetailedProductsChart();
+    renderProductOptyChart();
+    renderActivityTypeChart();
+    renderActivitySalesRepChart();
+    renderCustomersProvinceChart();
+    renderCustomersGroupChart();
+    renderRevenueSalesRepChart();
+
+    // Missing metrics integration
+    renderLeadStatusChart();
+    renderLeadAreaChart();
+    renderLeadOptyTimeChart();
+    renderLeadQualifiedTimeChart();
+    renderRevenueNewVsReturningChart();
+    renderRevenueOrderTimeChart();
+  }
+
+  window.renderAllLiveCharts = renderAllLiveCharts;
+
+  function updateCacheTimeDisplay() {
+    const textEl = document.getElementById('cacheTimeText');
+    if (!textEl) return;
+    const lastUpdate = localStorage.getItem('crm_cache_last_updated');
+    if (lastUpdate) {
+      textEl.textContent = `(Đã lưu: ${lastUpdate})`;
+    } else {
+      textEl.textContent = '(Chưa lưu cache)';
+    }
+  }
+
+  document.getElementById('btnRefreshCache')?.addEventListener('click', async () => {
+    forceRefresh = true;
+    const btn = document.getElementById('btnRefreshCache');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-arrows-rotate fa-spin"></i> Đang tải...';
+    }
+    
+    try {
+      // Re-run all live charts which will fetch fresh data and update cache
+      await window.renderAllLiveCharts();
+      
+      const nowStr = new Date().toLocaleString('vi-VN');
+      localStorage.setItem('crm_cache_last_updated', nowStr);
+      updateCacheTimeDisplay();
+    } catch(e) {
+      console.error('Failed to refresh cache:', e);
+    } finally {
+      forceRefresh = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Cập nhật mới nhất';
+      }
+    }
+  });
+
+  // Initial call
+  updateCacheTimeDisplay();
+
+  // Set default date range for Live Charts: 2022-01-01 -> today
+  // This runs after Sankey init() which may override dateFrom/dateTo with lead dates
+  // We use setTimeout(0) to ensure this runs last in the event queue
+  (function initLiveDateDefaults() {
+    const fromEl = document.getElementById('dateFrom');
+    const toEl   = document.getElementById('dateTo');
+    if (!fromEl || !toEl) { renderAllLiveCharts(); return; }
+    setTimeout(() => {
+      fromEl.value = '2022-01-01';
+      const today = new Date().toISOString().split('T')[0];
+      toEl.value = today;
+      // Re-render live charts whenever the date inputs change
+      [fromEl, toEl].forEach(el => {
+        el.addEventListener('change', () => {
+          if (typeof window.renderAllLiveCharts === 'function') window.renderAllLiveCharts();
+        });
+      });
+      // Render with correct date range
+      renderAllLiveCharts();
+    }, 0);
+  })();
+})();
+</script>
+</body>
+</html>

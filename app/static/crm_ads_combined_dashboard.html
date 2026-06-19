@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Ads & CRM ROI Dashboard</title>
+    <!-- Google Fonts & FontAwesome -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: #161c2e;
+            --bg-tertiary: #1f2942;
+            --border-color: #2e3a59;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-purple: #a855f7;
+            --accent-cyan: #06b6d4;
+            --accent-emerald: #10b981;
+            --accent-rose: #f43f5e;
+            --shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 30px;
+        }
+
+        .dashboard-container {
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #38bdf8, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .last-update {
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 12px;
+            color: var(--accent-purple);
+            font-weight: 600;
+        }
+
+        /* KPI Cards Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-cyan);
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-purple);
+        }
+
+        .kpi-card.kpi-revenue::before { background: var(--accent-emerald); }
+        .kpi-card.kpi-roi::before { background: var(--accent-cyan); }
+        .kpi-card.kpi-cac::before { background: var(--accent-rose); }
+
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 12px;
+        }
+
+        .kpi-header i {
+            font-size: 16px;
+        }
+
+        .kpi-value {
+            font-size: 26px;
+            font-weight: 800;
+            margin-bottom: 6px;
+        }
+
+        .kpi-footer {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .kpi-footer span {
+            font-weight: 700;
+        }
+
+        /* Charts Layout Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-panel {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .col-12 { grid-column: span 12; }
+        .col-8 { grid-column: span 8; }
+        .col-4 { grid-column: span 4; }
+
+        .chart-panel h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-panel h3 i {
+            color: var(--accent-cyan);
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 320px;
+        }
+
+        /* Funnel chart steps container */
+        .funnel-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            padding: 10px 0;
+        }
+
+        .funnel-step {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            transition: var(--transition);
+        }
+
+        .funnel-step:hover {
+            background: rgba(6, 182, 212, 0.05);
+            border-color: var(--accent-cyan);
+        }
+
+        .funnel-lbl {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .funnel-val {
+            font-family: monospace;
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--accent-cyan);
+        }
+
+        .funnel-pct {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        /* Referral table styles */
+        .data-table th, .data-table td {
+            padding: 12px 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .data-table tbody tr:hover {
+            background-color: rgba(6, 182, 212, 0.05);
+        }
+        .source-badge {
+            background: rgba(168, 85, 247, 0.15);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 11px;
+            color: var(--accent-purple);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        
+        <!-- Header -->
+        <header>
+            <div>
+                <h1>Báo cáo Hợp nhất Quảng cáo & Doanh thu CRM</h1>
+                <p>Kết nối trực tiếp dữ liệu chiến dịch Google Ads, traffic GA4 và Đơn hàng thực tế của Trimos Ecom 2026</p>
+            </div>
+            <div class="last-update">
+                <i class="fa-solid fa-clock-rotate-left"></i> Cập nhật: 19/06/2026 09:42
+            </div>
+        </header>
+
+        <!-- KPIs row -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-header">
+                    <span>Chi phí quảng cáo (Ads Spend)</span>
+                    <i class="fa-solid fa-money-bill-wave" style="color: var(--accent-purple);"></i>
+                </div>
+                <div class="kpi-value" style="color: var(--accent-purple);">9,292,356 VND</div>
+                <div class="kpi-footer">Từ Google Ads ➔ Clicks: <span>9,931</span></div>
+            </div>
+
+            <div class="kpi-card kpi-revenue">
+                <div class="kpi-header">
+                    <span>Doanh thu thực tế (CRM Revenue)</span>
+                    <i class="fa-solid fa-sack-dollar" style="color: var(--accent-emerald);"></i>
+                </div>
+                <div class="kpi-value" style="color: var(--accent-emerald);">118,555,583,686 VND</div>
+                <div class="kpi-footer">Từ local DB ➔ Đơn hàng: <span>524</span></div>
+            </div>
+
+            <div class="kpi-card kpi-roi">
+                <div class="kpi-header">
+                    <span>Hiệu quả đầu tư (ROI)</span>
+                    <i class="fa-solid fa-chart-line" style="color: var(--accent-cyan);"></i>
+                </div>
+                <div class="kpi-value" style="color: var(--accent-cyan);">1275739.9%</div>
+                <div class="kpi-footer">Doanh thu / Chi phí quảng cáo</div>
+            </div>
+
+            <div class="kpi-card kpi-cac">
+                <div class="kpi-header">
+                    <span>Chi phí chuyển đổi (CPL / CAC)</span>
+                    <i class="fa-solid fa-user-tag" style="color: var(--accent-rose);"></i>
+                </div>
+                <div class="kpi-value" style="color: var(--accent-rose);">17,734 VND</div>
+                <div class="kpi-footer">CPL (CRM Lead): <span>17,974 VND</span></div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <!-- Spend vs Revenue Line Chart -->
+            <div class="chart-panel col-8">
+                <h3><i class="fa-solid fa-chart-area"></i> Xu hướng Chi tiêu Quảng cáo vs Doanh thu Đơn hàng</h3>
+                <div class="chart-container">
+                    <canvas id="chart-spend-vs-revenue"></canvas>
+                </div>
+            </div>
+
+            <!-- Funnel stages -->
+            <div class="chart-panel col-4">
+                <h3><i class="fa-solid fa-filter"></i> Phễu chuyển đổi hợp nhất (End-to-End)</h3>
+                <div class="funnel-container">
+                    <div class="funnel-step">
+                        <span class="funnel-lbl">1. Impressions (Hiển thị Ads)</span>
+                        <span class="funnel-val">530,163</span>
+                    </div>
+                    <div class="funnel-step">
+                        <span class="funnel-lbl">2. Clicks (Vào quảng cáo)</span>
+                        <span class="funnel-val">9,931 <span class="funnel-pct">(1.87%)</span></span>
+                    </div>
+                    <div class="funnel-step">
+                        <span class="funnel-lbl">3. Sessions (Truy cập Web)</span>
+                        <span class="funnel-val">122,153 <span class="funnel-pct">(1230.0%)</span></span>
+                    </div>
+                    <div class="funnel-step">
+                        <span class="funnel-lbl">4. Leads (Khách hàng thô)</span>
+                        <span class="funnel-val">517 <span class="funnel-pct">(0.42%)</span></span>
+                    </div>
+                    <div class="funnel-step">
+                        <span class="funnel-lbl">5. Orders (Đơn hàng chốt)</span>
+                        <span class="funnel-val">524 <span class="funnel-pct">(101.4%)</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Device Cost -->
+            <div class="chart-panel col-4">
+                <h3><i class="fa-solid fa-laptop-mobile"></i> Chi phí theo Thiết bị (Ads)</h3>
+                <div class="chart-container">
+                    <canvas id="chart-device-cost"></canvas>
+                </div>
+            </div>
+
+            <!-- Traffic channels -->
+            <div class="chart-panel col-4">
+                <h3><i class="fa-solid fa-circle-nodes"></i> Nguồn lưu lượng GA4 (Sessions)</h3>
+                <div class="chart-container">
+                    <canvas id="chart-ga4-channels"></canvas>
+                </div>
+            </div>
+
+            <!-- Lead statuses -->
+            <div class="chart-panel col-4">
+                <h3><i class="fa-solid fa-clipboard-list"></i> Trạng thái Lead trong CRM</h3>
+                <div class="chart-container">
+                    <canvas id="chart-lead-statuses"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Referrals & Meta Pixel Analysis Section -->
+        <div class="charts-grid" style="margin-top: 20px;">
+            <!-- Top Referral Links Table -->
+            <div class="chart-panel col-8" style="overflow-x: auto;">
+                <h3><i class="fa-solid fa-link"></i> Nguồn giới thiệu hàng đầu (Top Referral Links - Link Ref)</h3>
+                <table class="data-table" style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border-color); text-align: left; color: var(--text-secondary);">
+                            <th style="padding: 10px 5px;">Thứ tự</th>
+                            <th style="padding: 10px 5px;">Nguồn</th>
+                            <th style="padding: 10px 5px;">Đường dẫn giới thiệu (Referrer URL)</th>
+                            <th style="padding: 10px 5px; text-align: right;">Sessions</th>
+                            <th style="padding: 10px 5px; text-align: right;">Chuyển đổi</th>
+                            <th style="padding: 10px 5px; text-align: right;">Tỷ lệ CĐ</th>
+                        </tr>
+                    </thead>
+                    <tbody style="color: var(--text-primary);">
+                        
+            <tr>
+                <td style="padding: 10px 5px;"><strong>#1</strong></td>
+                <td style="padding: 10px 5px;"><span class="source-badge">chatgpt.com</span></td>
+                <td style="padding: 10px 5px;" title="https://chatgpt.com/"><a href="https://chatgpt.com/" target="_blank" style="color: var(--accent-cyan); text-decoration: none;">https://chatgpt.com/</a></td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">165</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">0</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace; color: var(--accent-emerald);">0.0%</td>
+            </tr>
+            
+            <tr>
+                <td style="padding: 10px 5px;"><strong>#2</strong></td>
+                <td style="padding: 10px 5px;"><span class="source-badge">coccoc.com</span></td>
+                <td style="padding: 10px 5px;" title=""><a href="" target="_blank" style="color: var(--accent-cyan); text-decoration: none;">Direct/No Referrer</a></td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">125</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">0</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace; color: var(--accent-emerald);">0.0%</td>
+            </tr>
+            
+            <tr>
+                <td style="padding: 10px 5px;"><strong>#3</strong></td>
+                <td style="padding: 10px 5px;"><span class="source-badge">chatgpt.com</span></td>
+                <td style="padding: 10px 5px;" title=""><a href="" target="_blank" style="color: var(--accent-cyan); text-decoration: none;">Direct/No Referrer</a></td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">55</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">0</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace; color: var(--accent-emerald);">0.0%</td>
+            </tr>
+            
+            <tr>
+                <td style="padding: 10px 5px;"><strong>#4</strong></td>
+                <td style="padding: 10px 5px;"><span class="source-badge">coccoc.com</span></td>
+                <td style="padding: 10px 5px;" title="https://coccoc.com/"><a href="https://coccoc.com/" target="_blank" style="color: var(--accent-cyan); text-decoration: none;">https://coccoc.com/</a></td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">49</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">0</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace; color: var(--accent-emerald);">0.0%</td>
+            </tr>
+            
+            <tr>
+                <td style="padding: 10px 5px;"><strong>#5</strong></td>
+                <td style="padding: 10px 5px;"><span class="source-badge">m.facebook.com</span></td>
+                <td style="padding: 10px 5px;" title="http://m.facebook.com"><a href="http://m.facebook.com" target="_blank" style="color: var(--accent-cyan); text-decoration: none;">http://m.facebook.com</a></td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">43</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">0</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace; color: var(--accent-emerald);">0.0%</td>
+            </tr>
+            
+            <tr>
+                <td style="padding: 10px 5px;"><strong>#6</strong></td>
+                <td style="padding: 10px 5px;"><span class="source-badge">tecotec.store</span></td>
+                <td style="padding: 10px 5px;" title=""><a href="" target="_blank" style="color: var(--accent-cyan); text-decoration: none;">Direct/No Referrer</a></td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">34</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">0</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace; color: var(--accent-emerald);">0.0%</td>
+            </tr>
+            
+            <tr>
+                <td style="padding: 10px 5px;"><strong>#7</strong></td>
+                <td style="padding: 10px 5px;"><span class="source-badge">facebook.com</span></td>
+                <td style="padding: 10px 5px;" title="https://www.facebook.com/"><a href="https://www.facebook.com/" target="_blank" style="color: var(--accent-cyan); text-decoration: none;">https://www.facebook.com/</a></td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">24</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">0</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace; color: var(--accent-emerald);">0.0%</td>
+            </tr>
+            
+            <tr>
+                <td style="padding: 10px 5px;"><strong>#8</strong></td>
+                <td style="padding: 10px 5px;"><span class="source-badge">tecotec.store</span></td>
+                <td style="padding: 10px 5px;" title="https://tecostore.vn/"><a href="https://tecostore.vn/" target="_blank" style="color: var(--accent-cyan); text-decoration: none;">https://tecostore.vn/</a></td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">24</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">0</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace; color: var(--accent-emerald);">0.0%</td>
+            </tr>
+            
+            <tr>
+                <td style="padding: 10px 5px;"><strong>#9</strong></td>
+                <td style="padding: 10px 5px;"><span class="source-badge">gemini.google.com</span></td>
+                <td style="padding: 10px 5px;" title="https://gemini.google.com/"><a href="https://gemini.google.com/" target="_blank" style="color: var(--accent-cyan); text-decoration: none;">https://gemini.google.com/</a></td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">21</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">0</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace; color: var(--accent-emerald);">0.0%</td>
+            </tr>
+            
+            <tr>
+                <td style="padding: 10px 5px;"><strong>#10</strong></td>
+                <td style="padding: 10px 5px;"><span class="source-badge">chat.zalo.me</span></td>
+                <td style="padding: 10px 5px;" title="https://chat.zalo.me/"><a href="https://chat.zalo.me/" target="_blank" style="color: var(--accent-cyan); text-decoration: none;">https://chat.zalo.me/</a></td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">18</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace;">0</td>
+                <td style="padding: 10px 5px; text-align: right; font-family: monospace; color: var(--accent-emerald);">0.0%</td>
+            </tr>
+            
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Meta Pixel Performance Chart -->
+            <div class="chart-panel col-4">
+                <h3><i class="fa-brands fa-meta"></i> Phân tích lưu lượng Meta Pixel (Sessions)</h3>
+                <div class="chart-container">
+                    <canvas id="chart-meta-pixel"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Aligned Daily Spend vs Revenue
+        const dates = ["2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06", "2026-03-07", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-16", "2026-03-17", "2026-03-18", "2026-03-19", "2026-03-20", "2026-03-21", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12", "2026-04-13", "2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-18", "2026-04-19", "2026-04-20", "2026-04-21", "2026-04-22", "2026-04-23", "2026-04-24", "2026-04-25", "2026-04-26", "2026-04-27", "2026-04-28", "2026-04-29", "2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08", "2026-05-09", "2026-05-11", "2026-05-12", "2026-05-13", "2026-05-14", "2026-05-15", "2026-05-16", "2026-05-18", "2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22", "2026-05-23", "2026-05-25", "2026-05-26", "2026-05-27", "2026-05-28", "2026-05-29", "2026-05-30", "2026-06-01", "2026-06-02", "2026-06-03", "2026-06-04", "2026-06-05", "2026-06-06", "2026-06-08", "2026-06-09", "2026-06-10", "2026-06-11", "2026-06-12", "2026-06-13", "2026-06-15", "2026-06-16", "2026-06-17", "2026-06-18", "2026-06-19"];
+        const spendData = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 34470.833838, 725091.202138, 368422.660755, 399537.63391599996, 100874.231979, 427872.014673, 600183.555142, 302131.529019, 539331.6276380001, 466190.814742, 237684.395965, 642449.3343710001, 376831.647342, 260241.973303, 570478.42509, 345020.281464, 336759.850729, 379946.705344, 422926.875213, 210342.76089900002, 446074.351853, 421812.591022, 500928.505114, 176752.266357, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0];
+        const revenueData = [671511600.0, 14412330240.0, 2973240.0, 462365280.0, 170737200.0, 4293000.0, 226635400.0, 72783120.0, 810000.0, 51040880.0, 3491820360.0, 9168001.0, 119904480.0, 1076173639.0, 7628843680.0, 1331849520.0, 580685000.0, 74529200.0, 3377366240.0, 30739681.0, 2358542000.0, 73151721.0, 2406006.0, 107939870.0, 3432764000.0, 397373120.0, 6984310080.0, 348004080.0, 13122000.0, 161896320.0, 2528390920.0, 873800001.0, 108308880.0, 4142954800.0, 7560000.0, 0.0, 238807320.0, 377730000.0, 2516069800.0, 86438601.0, 148785120.0, 97200000.0, 4050000.0, 1118830480.0, 212522400.0, 63748439.0, 5042131519.0, 257620479.0, 0.0, 0.0, 2633000000.0, 131790700.0, 193986360.0, 245131800.0, 220754940.0, 1782000.0, 269141240.0, 22845402.0, 211356000.0, 118064000.0, 1767219000.0, 436960552.0, 630429721.0, 403908960.0, 697680.0, 36574000.0, 23742119520.0, 2138644080.0, 54348638.0, 2626560.0, 156533762.0, 7864560.0, 1200014264.0, 134854200.0, 530919900.0, 1257120.0, 233000.0, 338660928.0, 230068800.0, 716156720.0, 419568120.0, 5752000.0, 108762880.0, 58382640.0, 4565337400.0, 2101005560.0, 237336480.0, 4216693640.0, 2748675997.0, 702531720.0, 257891724.0, 542020241.0, 506507160.0, 6156000.0];
+
+        const trendCtx = document.getElementById('chart-spend-vs-revenue').getContext('2d');
+        new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [
+                    {
+                        label: 'Chi tiêu Ads (VND)',
+                        data: spendData,
+                        borderColor: '#a855f7',
+                        backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Doanh thu Đơn hàng CRM (VND)',
+                        data: revenueData,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2.5,
+                        fill: true,
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#94a3b8' } }
+                },
+                scales: {
+                    x: { grid: { color: '#2e3a59' }, ticks: { color: '#94a3b8' } },
+                    y: { grid: { color: '#2e3a59' }, ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
+
+        // Device Cost chart
+        const devices = ["CONNECTED_TV", "DESKTOP", "MOBILE", "TABLET"];
+        const deviceCosts = [240.50460800000002, 3132396.892136, 6085878.451331, 73840.219831];
+        const deviceCtx = document.getElementById('chart-device-cost').getContext('2d');
+        new Chart(deviceCtx, {
+            type: 'doughnut',
+            data: {
+                labels: devices,
+                datasets: [{
+                    data: deviceCosts,
+                    backgroundColor: ['#06b6d4', '#a855f7', '#f43f5e', '#10b981'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#94a3b8' } }
+                }
+            }
+        });
+
+        // GA4 Traffic channels
+        const channels = ["Cross-network", "Email", "Organic Search", "Organic Social", "Organic Video", "Paid Other", "Paid Social", "Referral", "Unassigned"];
+        const channelSessions = [113808, 206, 25, 321, 10, 5264, 581, 1697, 241];
+        const channelCtx = document.getElementById('chart-ga4-channels').getContext('2d');
+        new Chart(channelCtx, {
+            type: 'pie',
+            data: {
+                labels: channels,
+                datasets: [{
+                    data: channelSessions,
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#64748b'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#94a3b8' } }
+                }
+            }
+        });
+
+        // CRM Lead Statuses
+        const statusMap = {
+            1: "New", 2: "Quality", 3: "Opty", 4: "Quotation", 5: "Process", 6: "Finished", 7: "Thất bại (New)", 8: "Thất bại (Quality)"
+        };
+        const rawStatuses = [1, 2, 3, 4, 5, 6, 7, 8];
+        const leadCounts = [70, 77, 79, 72, 86, 88, 22, 23];
+        const statusLabels = rawStatuses.map(s => statusMap[s] || "Trạng thái " + s);
+        
+        const leadCtx = document.getElementById('chart-lead-statuses').getContext('2d');
+        new Chart(leadCtx, {
+            type: 'bar',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    label: 'Số lượng lead',
+                    data: leadCounts,
+                    backgroundColor: '#06b6d4',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+                    y: { grid: { color: '#2e3a59' }, ticks: { color: '#94a3b8', stepSize: 1 } }
+                }
+            }
+        });
+
+        // Meta Pixel chart
+        const metaLabels = ["Facebook Organic/Pixel", "Facebook Paid Ads"];
+        const metaSessions = [277, 581];
+        
+        const metaCtx = document.getElementById('chart-meta-pixel').getContext('2d');
+        new Chart(metaCtx, {
+            type: 'doughnut',
+            data: {
+                labels: metaLabels,
+                datasets: [{
+                    data: metaSessions,
+                    backgroundColor: ['#06b6d4', '#3b82f6', '#ec4899', '#a855f7'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#94a3b8' } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

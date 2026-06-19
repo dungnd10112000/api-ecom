@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TCT_CRM E-commerce Database Previewer</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/index.css">
+    <!-- Chart.js CDN for Visual Graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="dark-theme">
+    <div id="app-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside id="app-sidebar">
+            <div class="sidebar-logo">
+                <span class="logo-icon">▲</span>
+                <span class="logo-text">TCT_CRM <small>ECom</small></span>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <button id="nav-btn-dashboard" class="nav-item active" onclick="switchTab('dashboard')">
+                    <span class="nav-icon">📊</span> Dashboard
+                </button>
+                <button id="nav-btn-customers" class="nav-item" onclick="switchTab('customers')">
+                    <span class="nav-icon">👥</span> Customers
+                </button>
+                <button id="nav-btn-orders" class="nav-item" onclick="switchTab('orders')">
+                    <span class="nav-icon">📦</span> Orders
+                </button>
+                <button id="nav-btn-products" class="nav-item" onclick="switchTab('products')">
+                    <span class="nav-icon">🏷️</span> Products
+                </button>
+                <button id="nav-btn-leads" class="nav-item" onclick="switchTab('leads')">
+                    <span class="nav-icon">🎯</span> Leads
+                </button>
+                <button id="nav-btn-analytics" class="nav-item" onclick="switchTab('analytics')">
+                    <span class="nav-icon">📈</span> Analytics Graph
+                </button>
+                <button id="nav-btn-marketing" class="nav-item" onclick="switchTab('marketing')">
+                    <span class="nav-icon">📢</span> Ads & ROI Report
+                </button>
+                <button id="nav-btn-sankey" class="nav-item" onclick="switchTab('sankey')">
+                    <span class="nav-icon">🗺️</span> Sankey Funnel
+                </button>
+                <button id="nav-btn-sync" class="nav-item highlight-btn" onclick="switchTab('sync')">
+                    <span class="nav-icon">🔄</span> Sync Console
+                </button>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="theme-toggle-box">
+                    <span>Dark Mode</span>
+                    <label class="switch">
+                        <input type="checkbox" id="theme-switch-checkbox" checked onchange="toggleTheme()">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="connection-status">
+                    <span id="db-status-dot" class="status-dot offline"></span>
+                    <span id="db-status-text" class="status-text">Checking DB...</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main id="app-main">
+            <!-- Header -->
+            <header id="main-header">
+                <div class="header-title-box">
+                    <h1 id="page-main-heading">CRM Analytics & Database Sync Console</h1>
+                    <p id="page-sub-heading">Preview and manage your synchronized PostgreSQL database statistics.</p>
+                </div>
+                <div class="header-actions">
+                    <div id="sync-badge" class="sync-badge idle">
+                        <span class="sync-badge-icon">●</span> <span id="sync-badge-text">Sync: Idle</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Container for Tab Content -->
+            <div id="content-container">
+                
+                <!-- DASHBOARD TAB -->
+                <section id="tab-dashboard" class="tab-content active-tab">
+                    <!-- KPI Cards Grid -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card" id="card-cust">
+                            <div class="kpi-card-header">
+                                <span class="kpi-title">TOTAL CUSTOMERS</span>
+                                <span class="kpi-icon">👥</span>
+                            </div>
+                            <div class="kpi-value" id="kpi-customers-count">0</div>
+                            <div class="kpi-footer">Synced from external CRM</div>
+                        </div>
+                        <div class="kpi-card" id="card-orders">
+                            <div class="kpi-card-header">
+                                <span class="kpi-title">TOTAL ORDERS</span>
+                                <span class="kpi-icon">📦</span>
+                            </div>
+                            <div class="kpi-value" id="kpi-orders-count">0</div>
+                            <div class="kpi-footer">E-Commerce deal volumes</div>
+                        </div>
+                        <div class="kpi-card" id="card-prods">
+                            <div class="kpi-card-header">
+                                <span class="kpi-title">TOTAL PRODUCTS</span>
+                                <span class="kpi-icon">🏷️</span>
+                            </div>
+                            <div class="kpi-value" id="kpi-products-count">0</div>
+                            <div class="kpi-footer">Catalog equipment items</div>
+                        </div>
+                        <div class="kpi-card" id="card-leads">
+                            <div class="kpi-card-header">
+                                <span class="kpi-title">TOTAL LEADS</span>
+                                <span class="kpi-icon">🎯</span>
+                            </div>
+                            <div class="kpi-value" id="kpi-leads-count">0</div>
+                            <div class="kpi-footer">Sales pipeline pipeline</div>
+                        </div>
+                    </div>
+
+                    <!-- Extra Dashboard Stats -->
+                    <div class="dashboard-row">
+                        <div class="dashboard-panel">
+                            <h3>Database Overview</h3>
+                            <p>Verify your connection settings in <code>.env</code>. Once connected, use the <strong>Sync Console</strong> to pull live data from the central CRM. Our dashboards will read the statistics directly from your local PostgreSQL.</p>
+                            <div class="db-details-box">
+                                <table class="mini-details-table">
+                                    <tr>
+                                        <td><strong>Host:</strong></td>
+                                        <td id="db-detail-host">Loading...</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Database:</strong></td>
+                                        <td id="db-detail-name">Loading...</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Schema:</strong></td>
+                                        <td id="db-detail-schema">Loading...</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Status:</strong></td>
+                                        <td id="db-detail-status">Loading...</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="dashboard-panel">
+                            <h3>Analytics Quick Links</h3>
+                            <div class="quick-links-grid">
+                                <button class="btn btn-secondary" onclick="switchTab('customers')">Browse Customers</button>
+                                <button class="btn btn-secondary" onclick="switchTab('orders')">Analyze Orders</button>
+                                <button class="btn btn-secondary" onclick="switchTab('products')">View Products</button>
+                                <button class="btn btn-primary" onclick="switchTab('sync')">Go to Sync Console</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product Performance Section -->
+                    <div class="dashboard-row" style="margin-top: 24px; grid-template-columns: 1fr;">
+                        <div class="chart-panel full-width">
+                            <h3>Product Effectiveness & Sales Performance</h3>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 24px;">
+                                <div style="position: relative; height: 320px;">
+                                    <h4 style="margin-bottom: 12px; font-weight: 500; font-size: 14px; color: var(--text-secondary);">Top Products by Revenue (VND)</h4>
+                                    <canvas id="chart-product-revenue"></canvas>
+                                </div>
+                                <div style="position: relative; height: 320px;">
+                                    <h4 style="margin-bottom: 12px; font-weight: 500; font-size: 14px; color: var(--text-secondary);">Top Product Profit Margins (%)</h4>
+                                    <canvas id="chart-product-margin"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- CUSTOMERS TAB -->
+                <section id="tab-customers" class="tab-content">
+                    <div class="table-controls">
+                        <div class="search-box">
+                            <input type="text" id="customers-search-input" placeholder="Search by name, email, phone..." oninput="debounceSearch('customers')">
+                        </div>
+                        <button class="btn btn-primary refresh-btn" onclick="fetchTableData('customers')">Refresh</button>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="data-table" id="customers-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Customer Name</th>
+                                    <th>Phone Number</th>
+                                    <th>Email</th>
+                                    <th>Address</th>
+                                    <th>Created Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="pagination-footer" id="customers-pagination">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </section>
+
+                <!-- ORDERS TAB -->
+                <section id="tab-orders" class="tab-content">
+                    <div class="table-controls">
+                        <div class="search-box">
+                            <input type="text" id="orders-search-input" placeholder="Search by contract or PO..." oninput="debounceSearch('orders')">
+                        </div>
+                        <button class="btn btn-primary refresh-btn" onclick="fetchTableData('orders')">Refresh</button>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="data-table" id="orders-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Contract No</th>
+                                    <th>PO No</th>
+                                    <th>Fee (PhiDonHang)</th>
+                                    <th>Remaining (PhiConLai)</th>
+                                    <th>Updated Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="pagination-footer" id="orders-pagination">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </section>
+
+                <!-- PRODUCTS TAB -->
+                <section id="tab-products" class="tab-content">
+                    <div class="table-controls">
+                        <div class="search-box">
+                            <input type="text" id="products-search-input" placeholder="Search by SKU or name..." oninput="debounceSearch('products')">
+                        </div>
+                        <button class="btn btn-primary refresh-btn" onclick="fetchTableData('products')">Refresh</button>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="data-table" id="products-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>SKU</th>
+                                    <th>Product Name</th>
+                                    <th>Import Price</th>
+                                    <th>Sale Price</th>
+                                    <th>Brand ID</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="pagination-footer" id="products-pagination">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </section>
+
+                <!-- LEADS TAB -->
+                <section id="tab-leads" class="tab-content">
+                    <div class="table-controls">
+                        <div class="search-box">
+                            <input type="text" id="leads-search-input" placeholder="Search by name, email, phone..." oninput="debounceSearch('leads')">
+                        </div>
+                        <button class="btn btn-primary refresh-btn" onclick="fetchTableData('leads')">Refresh</button>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="data-table" id="leads-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Lead Name</th>
+                                    <th>Phone</th>
+                                    <th>Email</th>
+                                    <th>Address</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="pagination-footer" id="leads-pagination">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </section>
+
+                <!-- SYNC CONSOLE TAB -->
+                <section id="tab-sync" class="tab-content">
+                    <div class="sync-form-container">
+                        <div class="form-group">
+                            <label for="sync-api-key-input">Swagger CRM API Key (x-api-key):</label>
+                            <input type="text" id="sync-api-key-input" placeholder="Enter API Key" value="tct_crm_sk_2024_XyZ9mN3pQ7rS" class="form-input">
+                            <p class="form-hint">Prefilled with your API Key credentials. Keep secure.</p>
+                        </div>
+                        
+                        <div class="sync-action-box">
+                            <button id="start-sync-btn" class="btn btn-lg btn-success" onclick="startSync()">Start Synchronization</button>
+                        </div>
+                    </div>
+
+                    <!-- Progress Indicator -->
+                    <div class="sync-progress-box" id="sync-progress-box" style="display: none;">
+                        <div class="progress-header">
+                            <span id="sync-progress-percent">0%</span>
+                            <span id="sync-progress-task">Syncing data...</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" id="sync-progress-bar-fill" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Live Logger Panel -->
+                    <div class="console-logger">
+                        <div class="console-header">
+                            <span class="console-dot red"></span>
+                            <span class="console-dot yellow"></span>
+                            <span class="console-dot green"></span>
+                            <span class="console-title">Sync Logs Console</span>
+                        </div>
+                        <div class="console-body" id="console-logs-body">
+                            <!-- Logs show here -->
+                            <p class="system-log">[SYSTEM] Console idle. Press "Start Synchronization" to pull records from swagger.tecotec.vn.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ANALYTICS TAB (GRAPH VIEW) -->
+                <section id="tab-analytics" class="tab-content">
+                    <!-- Filters Bar -->
+                    <div class="analytics-filters-bar">
+                        <div class="filter-group">
+                            <label for="anal-date-from">From:</label>
+                            <input type="date" id="anal-date-from" value="2026-01-01" class="form-input-sm">
+                        </div>
+                        <div class="filter-group">
+                            <label for="anal-date-to">To:</label>
+                            <input type="date" id="anal-date-to" value="2026-06-30" class="form-input-sm">
+                        </div>
+                        <div class="filter-group">
+                            <label for="anal-group-by">Interval:</label>
+                            <select id="anal-group-by" class="form-input-sm">
+                                <option value="month" selected>Month</option>
+                                <option value="week">Week</option>
+                                <option value="day">Day</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="loadAnalyticsData()">Apply Filters</button>
+                    </div>
+
+                    <!-- Mini KPI Row -->
+                    <div class="analytics-kpi-row">
+                        <div class="anal-kpi-card">
+                            <span class="anal-kpi-label">TOTAL REVENUE</span>
+                            <span class="anal-kpi-value" id="anal-kpi-revenue">0 VND</span>
+                        </div>
+                        <div class="anal-kpi-card">
+                            <span class="anal-kpi-label">AVG DEAL SIZE</span>
+                            <span class="anal-kpi-value" id="anal-kpi-avg-deal">0 VND</span>
+                        </div>
+                        <div class="anal-kpi-card">
+                            <span class="anal-kpi-label">CONVERSION WIN RATE</span>
+                            <span class="anal-kpi-value" id="anal-kpi-winrate">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- Charts Layout Grid -->
+                    <div class="charts-layout-grid">
+                        <div class="chart-panel full-width">
+                            <h3>Revenue & Deal Volume Trend</h3>
+                            <div class="chart-container">
+                                <canvas id="chart-revenue-trend"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-panel">
+                            <h3>Opportunity Funnel Stages</h3>
+                            <div class="chart-container">
+                                <canvas id="chart-funnel-stages"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-panel">
+                            <h3>Revenue by Sales Rep</h3>
+                            <div class="chart-container">
+                                <canvas id="chart-sales-rep-revenue"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-panel">
+                            <h3>Revenue by Province / Area</h3>
+                            <div class="chart-container">
+                                <canvas id="chart-area-revenue"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-panel">
+                            <h3>Customer Group Revenue Segment</h3>
+                            <div class="chart-container">
+                                <canvas id="chart-customer-group-revenue"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-panel">
+                            <h3>Lead Count by Source</h3>
+                            <div class="chart-container">
+                                <canvas id="chart-lead-source"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-panel">
+                            <h3>Lead Count by Customer Group</h3>
+                            <div class="chart-container">
+                                <canvas id="chart-lead-group"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-panel">
+                            <h3>Lead Count by Industry / Product Category</h3>
+                            <div class="chart-container">
+                                <canvas id="chart-lead-industry"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-panel">
+                            <h3>Opportunity Count by Sales Rep</h3>
+                            <div class="chart-container">
+                                <canvas id="chart-sales-rep-opportunities"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-panel">
+                            <h3>Pipeline Value by Sales Rep</h3>
+                            <div class="chart-container">
+                                <canvas id="chart-sales-rep-pipeline"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-panel full-width">
+                            <h3>Pipeline Value Trend over Time</h3>
+                            <div class="chart-container">
+                                <canvas id="chart-pipeline-time-trend"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- MARKETING (ADS & ROI) TAB -->
+                <section id="tab-marketing" class="tab-content">
+                    <div class="table-controls">
+                        <div class="search-box">
+                            <span style="font-size: 16px; font-weight:600; color: var(--text-primary);">Google Ads & GA4 ROI Performance</span>
+                        </div>
+                        <button id="sync-marketing-btn" class="btn btn-primary refresh-btn" onclick="startMarketingSync()">Sync Marketing Data</button>
+                    </div>
+                    
+                    <div class="iframe-container" style="width: 100%; height: calc(100vh - 200px); margin-top: 15px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); background-color: var(--bg-secondary);">
+                        <iframe id="marketing-iframe" src="/static/crm_ads_combined_dashboard.html" style="width: 100%; height: 100%; border: none;"></iframe>
+                    </div>
+                </section>
+
+                <!-- SANKEY FUNNEL TAB -->
+                <section id="tab-sankey" class="tab-content">
+                    <div class="table-controls">
+                        <div class="search-box">
+                            <span style="font-size: 16px; font-weight:600; color: var(--text-primary);">CRM Sankey Lead Funnel</span>
+                        </div>
+                    </div>
+                    
+                    <div class="iframe-container" style="width: 100%; height: calc(100vh - 200px); margin-top: 15px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); background-color: var(--bg-secondary);">
+                        <iframe id="sankey-iframe" src="/api/reports/sankey" style="width: 100%; height: 100%; border: none;"></iframe>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/index.js"></script>
+</body>
+</html>
