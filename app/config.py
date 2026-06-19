@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     APP_PORT: int = Field(default=8000)
     DEBUG: bool = Field(default=True)
 
+    LIVE_BASE: str = Field(default="https://swagger.tecotec.vn")
+    API_KEY: str = Field(default="")
+
     # Allow loading from .env file
     model_config = SettingsConfigDict(
         env_file=os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"),
