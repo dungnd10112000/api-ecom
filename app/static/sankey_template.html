@@ -872,7 +872,7 @@
 
     .filters {
       display: grid;
-      grid-template-columns: 160px 160px minmax(220px, 1.35fr) minmax(150px, .9fr) minmax(170px, .95fr) 96px;
+      grid-template-columns: 160px 160px minmax(150px, .9fr) minmax(170px, .95fr);
       gap: 12px;
       width: 100%;
       align-items: end;
@@ -970,7 +970,7 @@
 
     @media (max-width: 1320px) {
       .filters {
-        grid-template-columns: repeat(3, minmax(0, 1fr)) 96px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
       }
       .title h1 {
         max-width: none;
@@ -1017,8 +1017,8 @@
               <option value="all">Tất cả</option>
             </select>
           </div>
-          <button class="reset" id="resetFilters" type="button">Đặt lại</button>
-          <div class="field" style="align-self: flex-end; display: flex; align-items: center; gap: 8px; height: 38px;">
+          <button class="reset" id="resetFilters" type="button" style="display: none;">Đặt lại</button>
+          <div class="field" style="display: none; align-self: flex-end; align-items: center; gap: 8px; height: 38px;">
             <button id="btnRefreshCache" type="button" class="reset" style="background: var(--blue); color: white; border-color: var(--blue); display: flex; align-items: center; gap: 6px; white-space: nowrap; box-shadow: 0 4px 10px oklch(54% .19 255 / .15);">
               <i class="fa-solid fa-arrows-rotate"></i> Cập nhật mới nhất
             </button>
