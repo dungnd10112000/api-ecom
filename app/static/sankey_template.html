@@ -3411,12 +3411,17 @@ init();
   async function renderRevenueOrderTimeChart(){
     try {
       show('loadRevenueOrderTime');
-      const json = await liveAPI('/api/orders/stats/revenue-by-time?group_by=month');
+      const fromEl = document.getElementById('dateFrom');
+      const toEl   = document.getElementById('dateTo');
+      const dateFrom = fromEl?.value || '2025-12-01';
+      const dateTo   = toEl?.value   || new Date().toISOString().slice(0,10);
+
+      const json = await liveAPI(`/api/orders/stats/revenue-by-time?group_by=month&date_from=${dateFrom}&date_to=${dateTo}`);
       hide('loadRevenueOrderTime');
       const items = json.data || [];
       if(!items.length) return;
 
-      const sorted = items.sort((a,b) => (a.period || '').localeCompare(b.period || '')).slice(-18);
+      const sorted = items.sort((a,b) => (a.period || '').localeCompare(b.period || ''));
 
       createChart('chartRevenueOrderTime', {
         type: 'line',
