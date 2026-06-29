@@ -1358,11 +1358,11 @@
         <canvas id="chartProductOpty"></canvas>
         <div class="chart-loading" id="loadProductOpty"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
       </article>
-      <article class="chart-card full-width" style="display: none;">
-        <h3><i class="fa-solid fa-tags" style="color:var(--green);margin-right:6px;"></i>Win Rate theo sản phẩm</h3>
-        <p class="chart-desc">Tỉ lệ chốt thắng dựa trên sản phẩm chi tiết - *Ghi chú: Winrate = Báo giá Thắng / Tổng tất cả báo giá</p>
-        <canvas id="chartProductWinRate"></canvas>
-        <div class="chart-loading" id="loadProductWinRate"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-square-poll-horizontal" style="color:var(--green);margin-right:6px;"></i>Xu hướng đơn chốt thành công</h3>
+        <p class="chart-desc">Số đơn chốt thắng theo tháng (Cập nhật theo bộ lọc)</p>
+        <canvas id="chartMonthlyClosedOrders"></canvas>
+        <div class="chart-loading" id="loadMonthlyClosedOrders" style="display: none;"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
       </article>
       <article class="chart-card full-width">
         <h3><i class="fa-solid fa-fire" style="color:var(--orange);margin-right:6px;"></i>Sản phẩm theo doanh thu</h3>
@@ -1378,13 +1378,14 @@
 const DU_LIEU = JSON.parse(document.getElementById('du-lieu').textContent).rows;
 const nf = new Intl.NumberFormat('vi-VN');
 const pf = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 });
-const mauNguon = {'Facebook':'#A7F30B','Sự kiện':'#2D73E5','Website':'#14B8A6','Email':'#FDBA3B','Zalo':'#18A8F6','Sale tự khai thác':'#FB7A35','Showroom':'#22B36A','Hotline':'#8A8F98','TikTok':'#A855F7','Giới thiệu / đối tác / KOL':'#FF4B55','Không rõ':'#B5BBC5','Không xác định':'#B5BBC5','Không có trong CRM':'#9CA3AF'};
+const mauNguon = {'Nguồn khác':'#6B7280','Facebook':'#A7F30B','Sự kiện':'#2D73E5','Website':'#14B8A6','Email':'#FDBA3B','Zalo':'#18A8F6','Sale tự khai thác':'#FB7A35','Showroom':'#22B36A','Hotline':'#8A8F98','TikTok':'#A855F7','Giới thiệu / đối tác / KOL':'#FF4B55','Không rõ':'#B5BBC5','Không xác định':'#B5BBC5','Không có trong CRM':'#9CA3AF'};
 const brandNguon = {'Facebook':'#1877F2','TikTok':'#000000','Zalo':'#0068FF'};
-const iconNguon = {'Facebook':'fa-brands fa-facebook-f','Sự kiện':'fa-regular fa-calendar-check','Website':'fa-solid fa-globe','Email':'fa-regular fa-envelope','Zalo':'fa-solid fa-comment-dots','Sale tự khai thác':'fa-solid fa-user-tie','Showroom':'fa-solid fa-store','Hotline':'fa-solid fa-phone','TikTok':'fa-brands fa-tiktok','Giới thiệu / đối tác / KOL':'fa-solid fa-users','Không rõ':'fa-regular fa-circle-question','Không xác định':'fa-regular fa-circle-question'};
+const iconNguon = {'Nguồn khác':'fa-solid fa-boxes-stacked','Facebook':'fa-brands fa-facebook-f','Sự kiện':'fa-regular fa-calendar-check','Website':'fa-solid fa-globe','Email':'fa-regular fa-envelope','Zalo':'fa-solid fa-comment-dots','Sale tự khai thác':'fa-solid fa-user-tie','Showroom':'fa-solid fa-store','Hotline':'fa-solid fa-phone','TikTok':'fa-brands fa-tiktok','Giới thiệu / đối tác / KOL':'fa-solid fa-users','Không rõ':'fa-regular fa-circle-question','Không xác định':'fa-regular fa-circle-question'};
 
 const layMau = (k) => {
   if (mauNguon[k]) return mauNguon[k];
   const kl = String(k || '').toLowerCase();
+  if (kl === 'nguồn khác') return mauNguon['Nguồn khác'];
   if (kl.includes('không xác định') || kl.includes('không rõ')) return '#B5BBC5';
   if (kl.includes('facebook') || kl.includes('fanpage') || kl.includes('fb') || kl.includes('group')) return mauNguon['Facebook'];
   if (kl.includes('zalo')) return mauNguon['Zalo'];
@@ -1423,6 +1424,7 @@ const layBrand = (k) => {
 const layIcon = (k) => {
   if (iconNguon[k]) return iconNguon[k];
   const kl = String(k || '').toLowerCase();
+  if (kl === 'nguồn khác') return iconNguon['Nguồn khác'];
   if (kl.includes('không xác định') || kl.includes('không rõ')) return 'fa-regular fa-circle-question';
   if (kl.includes('facebook') || kl.includes('fanpage') || kl.includes('fb') || kl.includes('group')) return 'fa-brands fa-facebook-f';
   if (kl.includes('zalo')) return 'fa-solid fa-comment-dots';
@@ -1476,7 +1478,7 @@ function chiSo(items){
 function nguonStats(items){
   const crm=items.filter(r=>r.la_lead_crm);
   const total=crm.length;
-  return [...groupBy(crm,'kenh').entries()].map(([kenh,arr])=>({
+  const rawStats = [...groupBy(crm,'kenh').entries()].map(([kenh,arr])=>({
     kenh,
     lead:arr.length,
     pct:pct(arr.length,total),
@@ -1486,6 +1488,44 @@ function nguonStats(items){
     process:arr.filter(r=>r.da_process).length,
     finished:arr.filter(r=>r.da_finished).length
   })).sort((a,b)=>b.lead-a.lead);
+
+  const mainStats = [];
+  let otherStats = null;
+
+  for (const st of rawStats) {
+    if (st.pct < 1.0) {
+      if (!otherStats) {
+        otherStats = {
+          kenh: "Nguồn khác",
+          lead: 0,
+          pct: 0,
+          quality: 0,
+          opty: 0,
+          quotation: 0,
+          process: 0,
+          finished: 0,
+          isOther: true,
+          originalChannels: []
+        };
+      }
+      otherStats.lead += st.lead;
+      otherStats.pct += st.pct;
+      otherStats.quality += st.quality;
+      otherStats.opty += st.opty;
+      otherStats.quotation += st.quotation;
+      otherStats.process += st.process;
+      otherStats.finished += st.finished;
+      otherStats.originalChannels.push(st.kenh);
+    } else {
+      mainStats.push(st);
+    }
+  }
+
+  if (otherStats && otherStats.lead > 0) {
+    mainStats.push(otherStats);
+  }
+
+  return mainStats.sort((a,b)=>b.lead-a.lead);
 }
 
 function sourceY(i){return 93+i*50;}
@@ -1493,12 +1533,19 @@ function flowWidth(value,total,max=78,min=1.6){return total?Math.max(min,value/t
 function bandPath(x1,y1,x2,y2,h1,h2=h1){const c1=x1+(x2-x1)*.46,c2=x1+(x2-x1)*.64;return`M ${x1} ${y1-h1/2} C ${c1} ${y1-h1/2}, ${c2} ${y2-h2/2}, ${x2} ${y2-h2/2} L ${x2} ${y2+h2/2} C ${c2} ${y2+h2/2}, ${c1} ${y1+h1/2}, ${x1} ${y1+h1/2} Z`;}
 function bandHeight(value){return Math.max(16,Math.min(48,Math.sqrt(value)*4.8));}
 
-function layDanhSachNguonCon(kenh, items) {
-  const crmMatches = items.filter(r => r.kenh === kenh && r.la_lead_crm);
+function layDanhSachNguonCon(st, items) {
+  const isOther = typeof st === 'object' && st.isOther;
+  const kenh = typeof st === 'object' ? st.kenh : st;
+  const crmMatches = items.filter(r => {
+    if (isOther) {
+      return st.originalChannels.includes(r.kenh) && r.la_lead_crm;
+    }
+    return r.kenh === kenh && r.la_lead_crm;
+  });
   const groups = new Map();
   for (const r of crmMatches) {
-    const sub = r.sub_source || "Không rõ";
-    groups.set(sub, (groups.get(sub) || 0) + 1);
+    const key = isOther ? r.kenh : (r.sub_source || "Không rõ");
+    groups.set(key, (groups.get(key) || 0) + 1);
   }
   return [...groups.entries()]
     .map(([name, count]) => ({ name, count }))
@@ -1510,10 +1557,11 @@ function renderSources(stats){
   els.sourceCards.innerHTML=stats.map(st=>{
     const c=layMau(st.kenh);
     const b=layBrand(st.kenh);
-    const subSources = layDanhSachNguonCon(st.kenh, items);
+    const subSources = layDanhSachNguonCon(st, items);
+    const tooltipTitle = st.isOther ? "Nguồn thành phần" : "Thư mục con";
     const tooltipHtml = subSources.length > 0 
       ? `<div class="sub-sources-tooltip">
-          <div style="font-weight:800;font-size:11px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;border-bottom:1px solid var(--line);padding-bottom:4px;">Thư mục con</div>
+          <div style="font-weight:800;font-size:11px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;border-bottom:1px solid var(--line);padding-bottom:4px;">${tooltipTitle}</div>
           <div style="display:grid;gap:6px;max-height:200px;overflow-y:auto;padding-right:4px;">
             ${subSources.map(sub => `
               <div style="display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--ink);">
@@ -1567,17 +1615,32 @@ function renderSvg(stats,c){
     if(!np[f]||!np[t])return;
     const h=bandHeight(v);
     paths+=`<path class="flow-band" d="${bandPath(np[f].right,np[f].cy,np[t].left,np[t].cy,h,h)}"></path>`;
+    
+    // Calculate and draw conversion rate label in the middle of the flow
+    const fromVal = f === 0 ? c.lead : (f === 1 ? c.quality : (f === 2 ? c.opty : (f === 3 ? c.quotation : c.process)));
+    const pctVal = fromVal ? (v / fromVal * 100) : 0;
+    if (pctVal > 0 && h > 18) {
+      const tx = (np[f].right + np[t].left) / 2;
+      const ty = (np[f].cy + np[t].cy) / 2;
+      paths+=`<g style="cursor:default;">
+        <rect x="${tx - 18}" y="${ty - 8}" width="36" height="15" rx="3" fill="var(--paper)" stroke="var(--line)" stroke-width="1" />
+        <text class="flow-label" x="${tx}" y="${ty + 3}" text-anchor="middle" font-size="9" font-weight="900" fill="oklch(40% .04 252)">${pctVal.toFixed(0)}%</text>
+      </g>`;
+    }
   });
 
-  // Render red failed flows
+  // Render red failed/unconverted flows dynamically
   const failedStages=[
-    [0, c.failedNew],
-    [1, c.failedQuality]
+    [0, c.lead - c.quality],      // New -> Failed
+    [1, c.quality - c.opty],     // Quality -> Failed
+    [2, c.opty - c.quotation],   // Opty -> Failed
+    [3, c.quotation - c.process], // Quotation -> Failed
+    [4, c.process - c.finished]   // Process -> Failed
   ];
   failedStages.forEach(([f, v])=>{
     if(!np[f]||!np[6]||v<=0)return;
     const h=bandHeight(v);
-    paths+=`<path class="flow-band-failed" d="${bandPath(np[f].right,np[f].cy,np[6].left,np[6].cy,h,h)}" fill="rgba(239, 68, 68, 0.22)"></path>`;
+    paths+=`<path class="flow-band-failed" d="${bandPath(np[f].right,np[f].cy,np[6].left,np[6].cy,h,h)}" fill="rgba(239, 68, 68, 0.16)"></path>`;
   });
 
   els.svg.innerHTML=paths;
@@ -1585,7 +1648,7 @@ function renderSvg(stats,c){
 
 function renderNodes(c){
   const leadPct=c.lead?100:0;
-  const failedTotal = c.failedNew + c.failedQuality;
+  const failedTotal = c.lead - c.finished;
   const nodes=[
     {cls:'new-node',icon:'fa-solid fa-users',label:'New',value:c.lead,small:fp(leadPct),c:'#1F3B76'},
     {cls:'quality-node',icon:'fa-solid fa-check-to-slot',label:'Quality',value:c.quality,small:fp(pct(c.quality,c.lead)),c:'#14B8A6'},
@@ -1593,7 +1656,7 @@ function renderNodes(c){
     {cls:'quotation-node',icon:'fa-solid fa-file-invoice-dollar',label:'Quotation',value:c.quotation,small:fp(pct(c.quotation,c.opty)),c:'#FB7A35'},
     {cls:'process-node',icon:'fa-solid fa-spinner',label:'Process',value:c.process,small:fp(pct(c.process,c.quotation)),c:'#8b5cf6'},
     {cls:'finished-node',icon:'fa-solid fa-trophy',label:'Finished',value:c.finished,small:fp(pct(c.finished,c.process)),c:'#76D12A'},
-    {cls:'failed-node',icon:'fa-solid fa-circle-xmark',label:'Thất bại',value:failedTotal,small:fp(pct(failedTotal,c.lead)),c:'#EF4444'}
+    {cls:'failed-node',icon:'fa-solid fa-circle-xmark',label:'Chưa bán',value:failedTotal,small:fp(pct(failedTotal,c.lead)),c:'#EF4444'}
   ];
   els.nodes.innerHTML=nodes.map(n=>`<article class="stage-node ${n.cls}" style="--c:${n.c}"><i class="${n.icon}"></i><span>${n.label}</span><strong>${nf.format(n.value)}</strong>${n.small?`<small>${n.small}</small>`:''}</article>`).join('');
 }
@@ -3386,7 +3449,7 @@ init();
     
     renderEndToEndFunnelChart();
     renderWinRateSalesRepChart();
-    renderProductWinRateChart();
+    renderMonthlyClosedOrdersChart();
     renderProductRevenueAndQtyCharts();
     renderHotProductsChart();
     renderDetailedProductsChart();

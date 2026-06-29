@@ -231,8 +231,8 @@ def run_sync_task(api_key: str):
             sync_status["counts"]["customers"] = total_customers_synced
             
             # Limit page query for demonstration if too large
-            if total_customers_synced >= 500:
-                add_log("Reached sample limit (500 customers synced) for preview.")
+            if total_customers_synced >= 10000:
+                add_log("Reached sample limit (10000 customers synced) for preview.")
                 break
                 
             pag = resp.get("pagination", {})
@@ -303,8 +303,8 @@ def run_sync_task(api_key: str):
             total_orders_synced += len(data)
             sync_status["counts"]["orders"] = total_orders_synced
             
-            if total_orders_synced >= 500:
-                add_log("Reached sample limit (500 orders synced) for preview.")
+            if total_orders_synced >= 10000:
+                add_log("Reached sample limit (10000 orders synced) for preview.")
                 break
                 
             pag = resp.get("pagination", {})
@@ -317,163 +317,252 @@ def run_sync_task(api_key: str):
         # =====================================================================
         # 4. SIMULATE LEADS (DUE TO EXTERNAL API COLUMN BUG 'CongTy')
         # =====================================================================
-        add_log("Attempting to fetch Leads from live API...")
+        add_log("Bypassing faulty live API leads endpoint (known bug 'CongTy')...")
+        add_log("Entering fallback mode: Syncing actual CRM lead sources hierarchy & generating simulated Lead records...")
+        
+        # Clean up old references to avoid foreign key violations
+        from app.models import Activity, Opportunity, Quotation, LinkQuotationProduct
+        db.query(Activity).delete()
+        db.query(LinkQuotationProduct).delete()
+        db.query(Quotation).delete()
+        db.query(Opportunity).delete()
+        db.query(Lead).delete()
+        
+        # Delete old source taxonomy items (not referenced by products)
+        product_cats = db.query(Product.NhomThietBiId).filter(Product.NhomThietBiId.isnot(None)).distinct().all()
+        prod_cat_ids = [r[0] for r in product_cats]
+        if prod_cat_ids:
+            db.query(Taxonomy).filter(
+                Taxonomy.TaxonomyType == 3,
+                Taxonomy.Id.notin_(prod_cat_ids)
+            ).delete(synchronize_session=False)
+        else:
+            db.query(Taxonomy).filter(Taxonomy.TaxonomyType == 3).delete(synchronize_session=False)
+        db.commit()
+        
+        # Fetch live CRM hierarchical source stats
+        live_sources = []
         try:
-            # We already know this fails, but it's good practice to try once or handle the fallback
-            url = f"{base_url}/api/leads?api_key={api_key}&limit=5"
-            fetch_api_data(url, api_key)
-        except Exception as e:
-            add_log(f"External API leads endpoint failed (expected): {str(e)}")
-            add_log("Entering fallback mode: Syncing actual CRM lead sources hierarchy & generating simulated Lead records...")
+            sources_url = f"{base_url}/api/leads/stats/by-source?api_key={api_key}"
+            resp = fetch_api_data(sources_url, api_key)
+            if resp.get("success") and "data" in resp:
+                live_sources = resp["data"]
+                add_log("Successfully retrieved hierarchical lead sources from live CRM.")
+        except Exception as se:
+            add_log(f"Failed to fetch live CRM source hierarchy: {str(se)}. Using fallback hierarchy.")
+            live_sources = [
+                {"ten_nguon": "Zalo", "tong_lead": 10646, "children": [
+                    {"ten_nguon_con": "Zalo Chat", "tong_lead": 6801},
+                    {"ten_nguon_con": "Zalo OA", "tong_lead": 3819},
+                    {"ten_nguon_con": "Zalo Listening", "tong_lead": 21},
+                    {"ten_nguon_con": "Zalo Seeding", "tong_lead": 5}
+                ]},
+                {"ten_nguon": "Website", "tong_lead": 6922, "children": [
+                    {"ten_nguon_con": "tecostore.vn", "tong_lead": 6674, "children": [
+                        {"ten_nguon_con": "Hotline", "tong_lead": 3918},
+                        {"ten_nguon_con": "Chat box", "tong_lead": 787},
+                        {"ten_nguon_con": "Giỏ hàng", "tong_lead": 644},
+                        {"ten_nguon_con": "Email", "tong_lead": 531},
+                        {"ten_nguon_con": "Đề nghị báo giá (Products)", "tong_lead": 504},
+                        {"ten_nguon_con": "Đề nghị báo giá (Header)", "tong_lead": 151},
+                        {"ten_nguon_con": "Google Ads", "tong_lead": 139}
+                    ]},
+                    {"ten_nguon_con": "dealer.ingcostore.vn", "tong_lead": 235},
+                    {"ten_nguon_con": "tecotec.com.vn", "tong_lead": 7},
+                    {"ten_nguon_con": "ingcovietnam.vn", "tong_lead": 6}
+                ]},
+                {"ten_nguon": "Facebook", "tong_lead": 1625, "children": [
+                    {"ten_nguon_con": "Facebook Ads", "tong_lead": 1602},
+                    {"ten_nguon_con": "Facebook Page", "tong_lead": 19},
+                    {"ten_nguon_con": "Facebook Seeding", "tong_lead": 3},
+                    {"ten_nguon_con": "Facebook Listening", "tong_lead": 1}
+                ]},
+                {"ten_nguon": "Sàn TMDT", "tong_lead": 834, "children": [
+                    {"ten_nguon_con": "Shopee", "tong_lead": 506},
+                    {"ten_nguon_con": "Tiki", "tong_lead": 194},
+                    {"ten_nguon_con": "Lazada", "tong_lead": 103},
+                    {"ten_nguon_con": "Tiktok", "tong_lead": 23},
+                    {"ten_nguon_con": "Sendo", "tong_lead": 8}
+                ]},
+                {"ten_nguon": "Sale", "tong_lead": 651, "children": [
+                    {"ten_nguon_con": "Sale tự kiếm", "tong_lead": 492},
+                    {"ten_nguon_con": "Dealer", "tong_lead": 155},
+                    {"ten_nguon_con": "Seeding", "tong_lead": 4}
+                ]},
+                {"ten_nguon": "Không xác định", "tong_lead": 528, "children": [
+                    {"ten_nguon_con": "Facebook Group: CCW tha Riders", "tong_lead": 267},
+                    {"ten_nguon_con": "Fanpage: Cleveland CycleWerks ", "tong_lead": 5},
+                    {"ten_nguon_con": "sales@clevelandcyclewerks.com", "tong_lead": 5},
+                    {"ten_nguon_con": "clevelandspeedshop.com", "tong_lead": 4}
+                ]},
+                {"ten_nguon": "Events", "tong_lead": 165, "children": [
+                    {"ten_nguon_con": "VIETBUILD23", "tong_lead": 123},
+                    {"ten_nguon_con": "VIMEXPO HN22", "tong_lead": 16},
+                    {"ten_nguon_con": "Triển lãm", "tong_lead": 15},
+                    {"ten_nguon_con": "HMIP2022", "tong_lead": 6},
+                    {"ten_nguon_con": "MTAHCM22", "tong_lead": 2},
+                    {"ten_nguon_con": "MTAHN22", "tong_lead": 1},
+                    {"ten_nguon_con": "TB Đào Tạo - VT22", "tong_lead": 1},
+                    {"ten_nguon_con": "E&PVNhcm22", "tong_lead": 1}
+                ]},
+                {"ten_nguon": "Showroom TKX", "tong_lead": 137},
+                {"ten_nguon": "Youtube", "tong_lead": 1}
+            ]
+        
+        # Recursively insert source taxonomies and track direct leads count
+        next_id = 50000
+        nodes_to_simulate = []
+        
+        def insert_source_node(node, parent_id=None):
+            nonlocal next_id
+            next_id += 1
+            current_id = next_id
             
-            # Clean up old references to avoid foreign key violations
-            from app.models import Activity, Opportunity, Quotation, LinkQuotationProduct
-            db.query(Activity).delete()
-            db.query(LinkQuotationProduct).delete()
-            db.query(Quotation).delete()
-            db.query(Opportunity).delete()
-            db.query(Lead).delete()
+            title = node.get("ten_nguon") or node.get("ten_nguon_con")
+            tong_lead = node.get("tong_lead", 0)
+            children = node.get("children", [])
             
-            # Delete old source taxonomy items (not referenced by products)
-            product_cats = db.query(Product.NhomThietBiId).filter(Product.NhomThietBiId.isnot(None)).distinct().all()
-            prod_cat_ids = [r[0] for r in product_cats]
-            if prod_cat_ids:
-                db.query(Taxonomy).filter(
-                    Taxonomy.TaxonomyType == 3,
-                    Taxonomy.Id.notin_(prod_cat_ids)
-                ).delete(synchronize_session=False)
-            else:
-                db.query(Taxonomy).filter(Taxonomy.TaxonomyType == 3).delete(synchronize_session=False)
-            db.commit()
+            # Insert Taxonomy entry
+            db_tax = Taxonomy(Id=current_id, TieuDe=title, TaxonomyType=3, KhoaChaId=parent_id)
+            db.add(db_tax)
             
-            # Fetch live CRM hierarchical source stats
-            live_sources = []
-            try:
-                sources_url = f"{base_url}/api/leads/stats/by-source?api_key={api_key}"
-                resp = fetch_api_data(sources_url, api_key)
-                if resp.get("success") and "data" in resp:
-                    live_sources = resp["data"]
-                    add_log("Successfully retrieved hierarchical lead sources from live CRM.")
-            except Exception as se:
-                add_log(f"Failed to fetch live CRM source hierarchy: {str(se)}. Using fallback hierarchy.")
-                live_sources = [
-                    {"ten_nguon": "Zalo", "tong_lead": 10646, "children": [
-                        {"ten_nguon_con": "Zalo Chat", "tong_lead": 6801},
-                        {"ten_nguon_con": "Zalo OA", "tong_lead": 3819},
-                        {"ten_nguon_con": "Zalo Listening", "tong_lead": 21},
-                        {"ten_nguon_con": "Zalo Seeding", "tong_lead": 5}
-                    ]},
-                    {"ten_nguon": "Website", "tong_lead": 6922, "children": [
-                        {"ten_nguon_con": "tecostore.vn", "tong_lead": 6674, "children": [
-                            {"ten_nguon_con": "Hotline", "tong_lead": 3918},
-                            {"ten_nguon_con": "Chat box", "tong_lead": 787},
-                            {"ten_nguon_con": "Giỏ hàng", "tong_lead": 644},
-                            {"ten_nguon_con": "Email", "tong_lead": 531},
-                            {"ten_nguon_con": "Đề nghị báo giá (Products)", "tong_lead": 504},
-                            {"ten_nguon_con": "Đề nghị báo giá (Header)", "tong_lead": 151},
-                            {"ten_nguon_con": "Google Ads", "tong_lead": 139}
-                        ]},
-                        {"ten_nguon_con": "dealer.ingcostore.vn", "tong_lead": 235},
-                        {"ten_nguon_con": "tecotec.com.vn", "tong_lead": 7},
-                        {"ten_nguon_con": "ingcovietnam.vn", "tong_lead": 6}
-                    ]},
-                    {"ten_nguon": "Facebook", "tong_lead": 1625, "children": [
-                        {"ten_nguon_con": "Facebook Ads", "tong_lead": 1602},
-                        {"ten_nguon_con": "Facebook Page", "tong_lead": 19},
-                        {"ten_nguon_con": "Facebook Seeding", "tong_lead": 3},
-                        {"ten_nguon_con": "Facebook Listening", "tong_lead": 1}
-                    ]},
-                    {"ten_nguon": "Sàn TMDT", "tong_lead": 834, "children": [
-                        {"ten_nguon_con": "Shopee", "tong_lead": 506},
-                        {"ten_nguon_con": "Tiki", "tong_lead": 194},
-                        {"ten_nguon_con": "Lazada", "tong_lead": 103},
-                        {"ten_nguon_con": "Tiktok", "tong_lead": 23},
-                        {"ten_nguon_con": "Sendo", "tong_lead": 8}
-                    ]},
-                    {"ten_nguon": "Sale", "tong_lead": 651, "children": [
-                        {"ten_nguon_con": "Sale tự kiếm", "tong_lead": 492},
-                        {"ten_nguon_con": "Dealer", "tong_lead": 155},
-                        {"ten_nguon_con": "Seeding", "tong_lead": 4}
-                    ]},
-                    {"ten_nguon": "Không xác định", "tong_lead": 528, "children": [
-                        {"ten_nguon_con": "Facebook Group: CCW tha Riders", "tong_lead": 267},
-                        {"ten_nguon_con": "Fanpage: Cleveland CycleWerks ", "tong_lead": 5},
-                        {"ten_nguon_con": "sales@clevelandcyclewerks.com", "tong_lead": 5},
-                        {"ten_nguon_con": "clevelandspeedshop.com", "tong_lead": 4}
-                    ]},
-                    {"ten_nguon": "Events", "tong_lead": 165, "children": [
-                        {"ten_nguon_con": "VIETBUILD23", "tong_lead": 123},
-                        {"ten_nguon_con": "VIMEXPO HN22", "tong_lead": 16},
-                        {"ten_nguon_con": "Triển lãm", "tong_lead": 15},
-                        {"ten_nguon_con": "HMIP2022", "tong_lead": 6},
-                        {"ten_nguon_con": "MTAHCM22", "tong_lead": 2},
-                        {"ten_nguon_con": "MTAHN22", "tong_lead": 1},
-                        {"ten_nguon_con": "TB Đào Tạo - VT22", "tong_lead": 1},
-                        {"ten_nguon_con": "E&PVNhcm22", "tong_lead": 1}
-                    ]},
-                    {"ten_nguon": "Showroom TKX", "tong_lead": 137},
-                    {"ten_nguon": "Youtube", "tong_lead": 1}
-                ]
+            # Calculate direct lead count = tong_lead - sum(child.tong_lead)
+            children_sum = sum(c.get("tong_lead", 0) for c in children)
+            direct_lead = max(0, tong_lead - children_sum)
             
-            # Recursively insert source taxonomies and track direct leads count
-            next_id = 50000
-            nodes_to_simulate = []
-            
-            def insert_source_node(node, parent_id=None):
-                nonlocal next_id
-                next_id += 1
-                current_id = next_id
+            if direct_lead > 0:
+                nodes_to_simulate.append((current_id, direct_lead))
                 
+            for child in children:
+                insert_source_node(child, current_id)
+        
+        for root_node in live_sources:
+            insert_source_node(root_node)
+            
+        db.commit()
+        
+        # Fetch live CRM time stats for lead created date distribution
+        time_periods = []
+        time_weights = []
+        try:
+            time_url = f"{base_url}/api/leads/stats/by-time?api_key={api_key}&date_from=2024-01-01&group_by=month"
+            time_resp = fetch_api_data(time_url, api_key)
+            if time_resp.get("success") and "data" in time_resp:
+                for item in time_resp["data"]:
+                    period = item.get("period")
+                    tong = item.get("tong_lead", 0)
+                    if period and tong > 0:
+                        time_periods.append(period)
+                        time_weights.append(tong)
+                add_log("Successfully retrieved lead created date statistics from live CRM.")
+        except Exception as te:
+            add_log(f"Failed to fetch live CRM time stats: {str(te)}. Using fallback time range.")
+
+        # Fallback time range if API failed or returned empty
+        if not time_periods:
+            for i in range(6):
+                dt = datetime.now() - timedelta(days=i*30)
+                time_periods.append(dt.strftime("%Y-%m"))
+                time_weights.append(100)
+
+        # Fetch live CRM status stats for lead status distribution
+        status_codes = []
+        status_weights = []
+        try:
+            status_url = f"{base_url}/api/leads/stats/by-status?api_key={api_key}&date_from=2024-01-01"
+            status_resp = fetch_api_data(status_url, api_key)
+            if status_resp.get("success") and "data" in status_resp:
+                for item in status_resp["data"]:
+                    code = item.get("tinh_trang_code")
+                    tong = item.get("tong_lead", 0)
+                    if code is not None and tong > 0:
+                        status_codes.append(code)
+                        status_weights.append(tong)
+                add_log("Successfully retrieved lead status statistics from live CRM.")
+        except Exception as se_err:
+            add_log(f"Failed to fetch live CRM status stats: {str(se_err)}. Using fallback status distribution.")
+
+        # Fallback status distribution if API failed or returned empty
+        if not status_codes:
+            status_codes = [1, 2, 3, 4, 5, 6]
+            status_weights = [20, 20, 20, 20, 10, 10]
+            
+        # Build taxonomy title -> ID mapping
+        source_title_map = {}
+        for tax in db.query(Taxonomy).filter(Taxonomy.TaxonomyType == 3).all():
+            source_title_map[tax.TieuDe] = tax.Id
+
+        target_leads = 5000
+        total_crm_leads = sum(time_weights) if time_weights else 1
+        
+        dummy_firstnames = ["Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Phan", "Vũ", "Đặng", "Bùi", "Đỗ"]
+        dummy_midnames = ["Văn", "Thị", "Đức", "Thanh", "Minh", "Hữu", "Ngọc", "Hoàng", "Như", "Kim"]
+        dummy_lastnames = ["Sơn", "Hà", "Hải", "Tuấn", "Nam", "Lan", "Hương", "Anh", "Long", "Trang"]
+        dummy_domains = ["gmail.com", "tecotec.vn", "yahoo.com", "v-proud.com", "outlook.com"]
+        
+        total_leads_simulated = 0
+        created_leads = []
+        
+        for period, weight in zip(time_periods, time_weights):
+            sim_count_for_month = max(1, round(weight * target_leads / total_crm_leads))
+            
+            # Fetch lead sources distribution for this specific period/month
+            try:
+                yr, mo = map(int, period.split("-"))
+                date_from_str = f"{yr}-{mo:02d}-01"
+                if mo == 12:
+                    date_to_str = f"{yr+1}-01-01"
+                else:
+                    date_to_str = f"{yr}-{mo+1:02d}-01"
+                    
+                monthly_url = f"{base_url}/api/leads/stats/by-source?api_key={api_key}&date_from={date_from_str}&date_to={date_to_str}"
+                monthly_resp = fetch_api_data(monthly_url, api_key)
+                monthly_sources_data = monthly_resp.get("data", []) if monthly_resp.get("success") else []
+            except Exception:
+                monthly_sources_data = []
+                
+            # Flatten to get direct counts matching our source taxonomies
+            flat_monthly_sources = []
+            
+            def flatten_monthly(node):
                 title = node.get("ten_nguon") or node.get("ten_nguon_con")
                 tong_lead = node.get("tong_lead", 0)
                 children = node.get("children", [])
-                
-                # Insert Taxonomy entry
-                db_tax = Taxonomy(Id=current_id, TieuDe=title, TaxonomyType=3, KhoaChaId=parent_id)
-                db.add(db_tax)
-                
-                # Calculate direct lead count = tong_lead - sum(child.tong_lead)
                 children_sum = sum(c.get("tong_lead", 0) for c in children)
-                direct_lead = max(0, tong_lead - children_sum)
+                direct = max(0, tong_lead - children_sum)
                 
-                if direct_lead > 0:
-                    nodes_to_simulate.append((current_id, direct_lead))
-                    
+                source_id = source_title_map.get(title)
+                if source_id and direct > 0:
+                    flat_monthly_sources.append((source_id, direct))
                 for child in children:
-                    insert_source_node(child, current_id)
-            
-            for root_node in live_sources:
-                insert_source_node(root_node)
+                    flatten_monthly(child)
+                    
+            for root_node in monthly_sources_data:
+                flatten_monthly(root_node)
                 
-            db.commit()
-            
-            # Generate simulated leads matching the distribution
-            total_crm_leads = sum(count for _, count in nodes_to_simulate)
-            target_leads = 500  # Number of simulated leads to generate locally
-            
-            dummy_firstnames = ["Nguyễn", "Trần", "Lê", "Phạm", "Hoàng", "Phan", "Vũ", "Đặng", "Bùi", "Đỗ"]
-            dummy_midnames = ["Văn", "Thị", "Đức", "Thanh", "Minh", "Hữu", "Ngọc", "Hoàng", "Như", "Kim"]
-            dummy_lastnames = ["Sơn", "Hà", "Hải", "Tuấn", "Nam", "Lan", "Hương", "Anh", "Long", "Trang"]
-            dummy_domains = ["gmail.com", "tecotec.vn", "yahoo.com", "v-proud.com", "outlook.com"]
-            
-            total_leads_simulated = 0
-            created_leads = []
-            
-            for source_id, direct_count in nodes_to_simulate:
-                # Calculate proportional lead count (at least 1 if direct_count > 0)
-                sim_count = max(1, round(direct_count * target_leads / total_crm_leads))
+            # Fallback if no sources returned or matched for this month
+            if not flat_monthly_sources:
+                flat_monthly_sources = nodes_to_simulate
                 
-                for _ in range(sim_count):
+            # Simulate leads for this month
+            total_month_crm = sum(c for _, c in flat_monthly_sources) or 1
+            
+            for source_id, direct_count in flat_monthly_sources:
+                count_to_sim = max(1, round(direct_count * sim_count_for_month / total_month_crm))
+                
+                for _ in range(count_to_sim):
                     lead_id = 100000 + total_leads_simulated + 1
                     
                     name = f"{random.choice(dummy_firstnames)} {random.choice(dummy_midnames)} {random.choice(dummy_lastnames)}"
                     phone = f"09{random.randint(10000000, 99999999)}"
                     email = f"{name.lower().replace(' ', '')}{random.randint(10,99)}@{random.choice(dummy_domains)}"
                     
-                    # Randomly assign a CRM funnel stage (1 to 6)
-                    # Also randomly mark some of them as failed/lost (25% failure rate)
-                    stage_choice = random.choice([1, 2, 3, 4, 5, 6])
-                    is_lost = random.random() < 0.25
+                    # Assign status based on CRM stats weights
+                    stage_choice = random.choices(status_codes, weights=status_weights, k=1)[0]
+                    if stage_choice < 1 or stage_choice > 6:
+                        stage_choice = 3
+                        
+                    is_lost = random.random() < 0.15 # 15% failure rate
                     
                     trang_thai = stage_choice
                     if is_lost:
@@ -482,6 +571,22 @@ def run_sync_task(api_key: str):
                         elif stage_choice == 2:
                             trang_thai = 8 # Failed at Quality
                             
+                    # Assign created date within this month
+                    try:
+                        yr, mo = map(int, period.split("-"))
+                        start_date = datetime(yr, mo, 1)
+                        if mo == 12:
+                            end_date = datetime(yr + 1, 1, 1)
+                        else:
+                            end_date = datetime(yr, mo + 1, 1)
+                        days_in_month = (end_date - start_date).days
+                        random_days = random.randint(0, days_in_month - 1)
+                        random_hours = random.randint(0, 23)
+                        random_minutes = random.randint(0, 59)
+                        ngay_tao = start_date + timedelta(days=random_days, hours=random_hours, minutes=random_minutes)
+                    except Exception:
+                        ngay_tao = datetime.now() - timedelta(days=random.randint(1, 180))
+                        
                     db_lead = Lead(
                         Id=lead_id,
                         TenKhachHang=name,
@@ -490,115 +595,128 @@ def run_sync_task(api_key: str):
                         DiaChi="Thành phố Hà Nội, Việt Nam",
                         SourceId=source_id,
                         TrangThai=trang_thai,
-                        NgayTao=datetime.now() - timedelta(days=random.randint(1, 180)),
+                        NgayTao=ngay_tao,
                         NgayCapNhat=datetime.now()
                     )
                     db.add(db_lead)
                     created_leads.append((db_lead, stage_choice, is_lost))
                     total_leads_simulated += 1
-            
-            db.commit()
-            
-            # Fetch products, orders & customers to associate with Opty/Quotation/Process/Finished stages
-            products = db.query(Product).all()
-            synced_orders = db.query(Order).all()
-            synced_customers = db.query(Customer).all()
-            order_index = 0
-            
-            next_opp_id = 200000
-            next_quote_id = 300000
-            
-            for db_lead, stage, is_lost in created_leads:
-                # Stage 3+ has Opportunity
-                if stage >= 3:
-                    opp_id = next_opp_id
-                    next_opp_id += 1
                     
-                    opp_tinh_trang = 2 # Processing
-                    if stage == 3 and is_lost:
-                        opp_tinh_trang = 5 # Lost opportunity
-                    elif stage >= 4:
-                        opp_tinh_trang = 3 # Quoted
-                        if stage == 6:
-                            opp_tinh_trang = 4 # Won
-                            
-                    opp = Opportunity(
-                        Id=opp_id,
-                        LeadId=db_lead.Id,
-                        NguoiXuLyId=db_lead.NguoiXuLyId or "sys_sync",
-                        Amount=random.randint(5, 500) * 100000,
-                        TinhTrang=opp_tinh_trang,
-                        TrangThai=1,
-                        NgayTao=db_lead.NgayTao + timedelta(days=random.randint(1, 7))
+        db.commit()
+        
+        # Fetch products, orders & customers to associate with Opty/Quotation/Process/Finished stages
+        products = db.query(Product).all()
+        synced_orders = db.query(Order).all()
+        synced_customers = db.query(Customer).all()
+        order_index = 0
+        
+        next_opp_id = 200000
+        next_quote_id = 300000
+        
+        for db_lead, stage, is_lost in created_leads:
+            # Stage 3+ has Opportunity
+            if stage >= 3:
+                opp_id = next_opp_id
+                next_opp_id += 1
+                
+                opp_tinh_trang = 2 # Processing
+                if stage == 3 and is_lost:
+                    opp_tinh_trang = 5 # Lost opportunity
+                elif stage >= 4:
+                    opp_tinh_trang = 3 # Quoted
+                    if stage == 6:
+                        opp_tinh_trang = 4 # Won
+                        
+                # Determine dates
+                if stage == 6 and order_index < len(synced_orders):
+                    ord_record = synced_orders[order_index]
+                    if not ord_record.SoHopDong or ord_record.SoHopDong.strip() == "":
+                        ord_record.SoHopDong = f"HD-MOCK-{db_lead.Id}"
+                    so_hop_dong = ord_record.SoHopDong
+                    order_index += 1
+                    
+                    # Align dates backwards from the real order date
+                    order_date = ord_record.NgayCapNhat or ord_record.NgayTao or datetime.now()
+                    quote_date = order_date - timedelta(days=random.randint(2, 10))
+                    opp_date = quote_date - timedelta(days=random.randint(3, 15))
+                    lead_date = opp_date - timedelta(days=random.randint(3, 20))
+                    
+                    # Update lead date in DB
+                    db_lead.NgayTao = lead_date
+                else:
+                    opp_date = db_lead.NgayTao + timedelta(days=random.randint(1, 7))
+                    quote_date = opp_date + timedelta(days=random.randint(1, 5))
+                    so_hop_dong = f"HD-MOCK-{db_lead.Id}"
+                        
+                opp = Opportunity(
+                    Id=opp_id,
+                    LeadId=db_lead.Id,
+                    NguoiXuLyId=db_lead.NguoiXuLyId or "sys_sync",
+                    Amount=random.randint(5, 500) * 100000,
+                    TinhTrang=opp_tinh_trang,
+                    TrangThai=1,
+                    NgayTao=opp_date
+                )
+                db.add(opp)
+                db.flush()
+                
+                # Stage 4+ has Quotation
+                if stage >= 4:
+                    quote_id = next_quote_id
+                    next_quote_id += 1
+                    
+                    quote_tinh_trang = 3 # Confirmed
+                    if stage == 4 and is_lost:
+                        quote_tinh_trang = 5 # Lost quotation
+                    elif stage == 5 and is_lost:
+                        quote_tinh_trang = 5 # Lost quotation at process
+                    elif stage == 6:
+                        quote_tinh_trang = 4 # Won
+                        
+                    partner_id = random.choice(synced_customers).Id if synced_customers else None
+                    quote = Quotation(
+                        Id=quote_id,
+                        OpportunityId=opp.Id,
+                        PartnerId=partner_id,
+                        SoHopDong=so_hop_dong,
+                        TinhTrang=quote_tinh_trang,
+                        NgayTao=quote_date,
+                        TongGiaTri=opp.Amount
                     )
-                    db.add(opp)
+                    db.add(quote)
                     db.flush()
                     
-                    # Stage 4+ has Quotation
-                    if stage >= 4:
-                        quote_id = next_quote_id
-                        next_quote_id += 1
-                        
-                        quote_tinh_trang = 3 # Confirmed
-                        if stage == 4 and is_lost:
-                            quote_tinh_trang = 5 # Lost quotation
-                        elif stage == 5 and is_lost:
-                            quote_tinh_trang = 5 # Lost quotation at process
-                        elif stage == 6:
-                            quote_tinh_trang = 4 # Won
-                            
-                        so_hop_dong = f"HD-MOCK-{db_lead.Id}"
-                        if stage == 6 and order_index < len(synced_orders):
-                            ord_record = synced_orders[order_index]
-                            if not ord_record.SoHopDong or ord_record.SoHopDong.strip() == "":
-                                ord_record.SoHopDong = f"HD-MOCK-{db_lead.Id}"
-                            so_hop_dong = ord_record.SoHopDong
-                            order_index += 1
-                            
-                        partner_id = random.choice(synced_customers).Id if synced_customers else None
-                        quote = Quotation(
-                            Id=quote_id,
-                            OpportunityId=opp.Id,
-                            PartnerId=partner_id,
-                            SoHopDong=so_hop_dong,
-                            TinhTrang=quote_tinh_trang,
-                            NgayTao=opp.NgayTao + timedelta(days=random.randint(1, 5)),
-                            TongGiaTri=opp.Amount
-                        )
-                        db.add(quote)
-                        db.flush()
-                        
-                        # Link quotation to 1-3 random products
-                        if products:
-                            num_prods = random.randint(1, 3)
-                            selected_prods = random.sample(products, num_prods)
-                            for prod in selected_prods:
-                                link = LinkQuotationProduct(
-                                    QuotationId=quote.Id,
-                                    ProductId=prod.Id
-                                )
-                                db.add(link)
-            
-            db.commit()
-            
-            # Generate simulated activities for these leads
-            new_leads = db.query(Lead).all()
-            for lead in random.sample(new_leads, min(len(new_leads), 150)):
-                for _ in range(random.randint(1, 3)):
-                    db_act = Activity(
-                        LeadId=lead.Id,
-                        NguoiTaoId="sys_sync",
-                        NguoiXuLyId="sys_sync",
-                        LoaiHoatDong=random.choice(["call", "email", "meeting", "task"]),
-                        TrangThai=1,
-                        NgayTao=lead.NgayTao + timedelta(hours=random.randint(1, 48))
-                    )
-                    db.add(db_act)
-            db.commit()
-            
-            sync_status["counts"]["leads"] = total_leads_simulated
-            add_log(f"Generated {total_leads_simulated} simulated Lead records matching live CRM sources distribution successfully.")
-            
+                    # Link quotation to 1-3 random products
+                    if products:
+                        num_prods = random.randint(1, 3)
+                        selected_prods = random.sample(products, num_prods)
+                        for prod in selected_prods:
+                            link = LinkQuotationProduct(
+                                QuotationId=quote.Id,
+                                ProductId=prod.Id
+                            )
+                            db.add(link)
+        
+        db.commit()
+        
+        # Generate simulated activities for these leads
+        new_leads = db.query(Lead).all()
+        for lead in random.sample(new_leads, min(len(new_leads), 150)):
+            for _ in range(random.randint(1, 3)):
+                db_act = Activity(
+                    LeadId=lead.Id,
+                    NguoiTaoId="sys_sync",
+                    NguoiXuLyId="sys_sync",
+                    LoaiHoatDong=random.choice(["call", "email", "meeting", "task"]),
+                    TrangThai=1,
+                    NgayTao=lead.NgayTao + timedelta(hours=random.randint(1, 48))
+                )
+                db.add(db_act)
+        db.commit()
+        
+        sync_status["counts"]["leads"] = total_leads_simulated
+        add_log(f"Generated {total_leads_simulated} simulated Lead records matching live CRM sources distribution successfully.")
+        
         sync_status["status"] = "completed"
         sync_status["finished_at"] = datetime.now().isoformat()
         add_log("Synchronization fully completed.")
