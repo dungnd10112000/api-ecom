@@ -1359,10 +1359,10 @@
         <div class="chart-loading" id="loadProductOpty"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
       </article>
       <article class="chart-card">
-        <h3><i class="fa-solid fa-square-poll-horizontal" style="color:var(--green);margin-right:6px;"></i>Xu hướng đơn chốt thành công</h3>
-        <p class="chart-desc">Số đơn chốt thắng theo tháng (Cập nhật theo bộ lọc)</p>
+        <h3><i class="fa-solid fa-square-poll-horizontal" style="color:var(--green);margin-right:6px;"></i>Lead theo nguồn & Đơn chốt theo tháng</h3>
+        <p class="chart-desc">Tổng lead từ API thực (cột xanh nhạt) & số đơn chốt thắng (cột xanh lá) — cập nhật theo bộ lọc ngày</p>
         <canvas id="chartMonthlyClosedOrders"></canvas>
-        <div class="chart-loading" id="loadMonthlyClosedOrders" style="display: none;"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+        <div class="chart-loading" id="loadMonthlyClosedOrders"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải từ API…</div>
       </article>
       <article class="chart-card full-width">
         <h3><i class="fa-solid fa-fire" style="color:var(--orange);margin-right:6px;"></i>Sản phẩm theo doanh thu</h3>
@@ -2569,52 +2569,89 @@ init();
     } catch(e) { hide('loadWinRateRep'); console.error('WinRate SalesRep error:', e); }
   }
 
-  // ─── Chart 9: Win Rate by Product Group (Live API - Moved to Product Tab) ───
-  async function renderProductWinRateChart(){
+  // ─── Chart 9: Xu hướng Lead & Đơn chốt theo tháng (Live API) ───
+  async function renderMonthlyClosedOrdersChart(){
     try {
-      show('loadProductWinRate');
-      const json = await liveAPI('/api/conversion/win-rate-by-product?level=product');
-      hide('loadProductWinRate');
-      const items = json.data || json;
-      if(!items || !items.length) return;
+      show('loadMonthlyClosedOrders');
 
-      const sorted = items
-        .sort((a,b) => (b.win_rate_phan_tram || 0) - (a.win_rate_phan_tram || 0))
-        .slice(0, 10);
+      // Lấy date range từ bộ lọc hiện tại
+      const fromEl = document.getElementById('dateFrom');
+      const toEl   = document.getElementById('dateTo');
+      const dateFrom = fromEl?.value || '2025-12-01';
+      const dateTo   = toEl?.value   || new Date().toISOString().slice(0,10);
 
-      createChart('chartProductWinRate', {
+      // Gọi song song 2 API
+      const [leadsByTime, convByMonth] = await Promise.all([
+        liveAPI(`/api/leads/stats/by-time?date_from=${dateFrom}&date_to=${dateTo}&group_by=month`),
+        liveAPI(`/api/conversion/lead-to-order?date_from=${dateFrom}&date_to=${dateTo}`)
+      ]);
+
+      hide('loadMonthlyClosedOrders');
+
+      // Xây dựng bảng tháng từ by-time
+      const timeData = (leadsByTime.data || []).sort((a,b) => a.period.localeCompare(b.period));
+      const months   = timeData.map(d => d.period);
+      const leadCounts = timeData.map(d => d.tong_lead || 0);
+
+      // Map đơn chốt theo tháng từ conversion
+      const convData = convByMonth.data || [];
+      const convMap  = {};
+      convData.forEach(d => { convMap[d.period || d.thang] = d.lead_thanh_don || 0; });
+      const soldCounts = months.map(m => convMap[m] || 0);
+
+      if (!months.length) return;
+
+      createChart('chartMonthlyClosedOrders', {
         type: 'bar',
         data: {
-          labels: sorted.map(i => i.ten || 'Chưa phân nhóm'),
-          datasets: [{
-            label: 'Tỉ lệ thắng (%)',
-            data: sorted.map(i => i.win_rate_phan_tram || 0),
-            backgroundColor: '#FDBA3B',
-            borderRadius: 5,
-            barPercentage: 0.65
-          }]
+          labels: months,
+          datasets: [
+            {
+              label: 'Tổng Lead',
+              data: leadCounts,
+              backgroundColor: 'rgba(45,115,229,0.25)',
+              borderColor: '#2D73E5',
+              borderWidth: 1.5,
+              borderRadius: 4,
+              barPercentage: 0.7,
+              type: 'bar',
+              yAxisID: 'y'
+            },
+            {
+              label: 'Đơn chốt thắng',
+              data: soldCounts,
+              backgroundColor: '#10B981',
+              borderRadius: 4,
+              barPercentage: 0.45,
+              type: 'bar',
+              yAxisID: 'y'
+            }
+          ]
         },
         options: {
           ...chartDefaults,
-          indexAxis: 'y',
           plugins: {
             ...chartDefaults.plugins,
-            legend: { display: false },
+            legend: { display: true, position: 'top' },
             tooltip: {
               ...chartDefaults.plugins.tooltip,
               callbacks: {
-                label: ctx => `${ctx.parsed.x.toFixed(1)}%`
+                label: ctx => ctx.dataset.label + ': ' + VN.format(ctx.parsed.y)
               }
             }
           },
           scales: {
-            x: { min: 0, max: 100, ticks: { callback: v => v + '%' } },
-            y: { grid: { display: false } }
+            x: { grid: { display: false } },
+            y: { ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.05)' } }
           }
         }
       });
-    } catch(e) { hide('loadProductWinRate'); console.error('Product WinRate error:', e); }
+    } catch(e) {
+      hide('loadMonthlyClosedOrders');
+      console.error('Monthly lead-to-order chart error:', e);
+    }
   }
+
 
   // ─── Product Revenue & Qty Charts (Live API) ───
   async function renderProductRevenueAndQtyCharts() {
