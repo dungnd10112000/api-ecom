@@ -1929,10 +1929,12 @@ init();
 
     const res = await fetch(url, { headers: { 'x-api-key': API_KEY } });
     const json = await res.json();
-    try {
-      localStorage.setItem(cacheKey, JSON.stringify(json));
-    } catch (e) {
-      console.warn('LocalStorage save failed:', e);
+    if (json && json.success) {
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(json));
+      } catch (e) {
+        console.warn('LocalStorage save failed:', e);
+      }
     }
     return json;
   }
@@ -2597,7 +2599,7 @@ init();
       }
 
       // Xây dựng bảng tháng từ by-time
-      const timeData = (leadsByTime.data || []).sort((a,b) => a.period.localeCompare(b.period));
+      const timeData = (leadsByTime.data || []).sort((a,b) => (a.period || '').localeCompare(b.period || ''));
       const months   = timeData.map(d => d.period);
       const leadCounts = timeData.map(d => d.tong_lead || 0);
 
@@ -2612,7 +2614,7 @@ init();
       createChart('chartMonthlyClosedOrders', {
         type: 'bar',
         data: {
-          labels: months,
+          labels: months.map(m => formatPeriod(m)),
           datasets: [
             {
               label: 'Tổng Lead',
