@@ -1289,6 +1289,12 @@
         <canvas id="chartRevenueSalesRep"></canvas>
         <div class="chart-loading" id="loadRevenueRep"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
       </article>
+      <article class="chart-card full-width">
+        <h3><i class="fa-solid fa-chart-line" style="color:var(--green);margin-right:6px;"></i>Doanh thu theo thời gian</h3>
+        <p class="chart-desc" id="descRevenueTime">Xu hướng doanh thu bán hàng thực tế theo tháng</p>
+        <canvas id="chartRevenueTime"></canvas>
+        <div class="chart-loading" id="loadRevenueTime"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
     </div>
   </div>
 
@@ -3394,23 +3400,23 @@ init();
     } catch(e) { hide('loadRevenueNewVsReturning'); console.error('RevenueNewVsReturning error:', e); }
   }
 
-  // ─── Chart 20: Doanh thu & Số đơn hàng theo thời gian (Live API) ───
-  async function renderRevenueOrderTimeChart(){
+  // ─── Chart: Doanh thu theo thời gian (Live API) ───
+  async function renderRevenueTimeChart(){
     try {
-      show('loadRevenueOrderTime');
+      show('loadRevenueTime');
       const fromEl = document.getElementById('dateFrom');
       const toEl   = document.getElementById('dateTo');
       const dateFrom = fromEl?.value || '2025-12-01';
       const dateTo   = toEl?.value   || new Date().toISOString().slice(0,10);
 
       const json = await liveAPI(`/api/orders/stats/revenue-by-time?group_by=month&date_from=${dateFrom}&date_to=${dateTo}`);
-      hide('loadRevenueOrderTime');
+      hide('loadRevenueTime');
 
       const gb = determineGroupBy();
-      const descEl = document.getElementById('descRevenueOrderTime');
+      const descEl = document.getElementById('descRevenueTime');
       if (descEl) {
         const unit = gb === 'day' ? 'ngày' : gb === 'week' ? 'tuần' : 'tháng';
-        descEl.textContent = `Xu hướng doanh thu bán hàng thực tế và số đơn phát sinh theo ${unit}`;
+        descEl.textContent = `Xu hướng doanh thu bán hàng thực tế theo ${unit}`;
       }
 
       const items = json.data || [];
@@ -3418,7 +3424,7 @@ init();
 
       const sorted = items.sort((a,b) => (a.period || '').localeCompare(b.period || ''));
 
-      createChart('chartRevenueOrderTime', {
+      createChart('chartRevenueTime', {
         type: 'line',
         data: {
           labels: sorted.map(i => formatPeriod(i.period)),
@@ -3430,18 +3436,7 @@ init();
               backgroundColor: 'rgba(251,122,53,0.06)',
               tension: 0.35,
               borderWidth: 2.5,
-              yAxisID: 'y',
               fill: true
-            },
-            {
-              label: 'Số đơn hàng',
-              data: sorted.map(i => i.so_don_hang || 0),
-              borderColor: '#2D73E5',
-              backgroundColor: 'transparent',
-              tension: 0.35,
-              borderWidth: 2,
-              pointRadius: 4,
-              yAxisID: 'y1'
             }
           ]
         },
@@ -3452,20 +3447,13 @@ init();
             x: { grid: { color: 'rgba(0,0,0,0.04)' } },
             y: {
               type: 'linear',
-              position: 'left',
               grid: { color: 'rgba(0,0,0,0.05)' },
               ticks: { callback: v => v >= 1e9 ? (v/1e9).toFixed(1)+'B' : v >= 1e6 ? (v/1e6).toFixed(0)+'M' : VN.format(v) }
-            },
-            y1: {
-              type: 'linear',
-              position: 'right',
-              grid: { drawOnChartArea: false },
-              ticks: { precision: 0 }
             }
           }
         }
       });
-    } catch(e) { hide('loadRevenueOrderTime'); console.error('RevenueOrderTime error:', e); }
+    } catch(e) { hide('loadRevenueTime'); console.error('RevenueTime error:', e); }
   }
 
   // ─── Init and expose renderAllLiveCharts ───
@@ -3502,6 +3490,7 @@ init();
     renderLeadOptyTimeChart();
     renderLeadQualifiedTimeChart();
     renderRevenueNewVsReturningChart();
+    renderRevenueTimeChart();
   }
 
   window.renderAllLiveCharts = renderAllLiveCharts;
