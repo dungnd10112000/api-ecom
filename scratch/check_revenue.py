@@ -1,6 +1,5 @@
 import sys, urllib.request, json
 sys.stdout.reconfigure(encoding='utf-8')
-req = urllib.request.Request('https://swagger.tecotec.vn/api/orders/stats/revenue-by-time?group_by=month', headers={'x-api-key':'tct_crm_sk_2024_XyZ9mN3pQ7rS'})
 data = json.loads(urllib.request.urlopen(req).read())
 items = sorted(data['data'], key=lambda d: d['period'])
 print(f"Tong doanh thu: {data['tong_doanh_thu']:,} VND")
