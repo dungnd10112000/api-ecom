@@ -1301,12 +1301,6 @@
         <canvas id="chartRevenueSalesRep"></canvas>
         <div class="chart-loading" id="loadRevenueRep"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
       </article>
-      <article class="chart-card full-width">
-        <h3><i class="fa-solid fa-chart-line" style="color:var(--green);margin-right:6px;"></i>Doanh thu &amp; Số đơn hàng theo thời gian</h3>
-        <p class="chart-desc" id="descRevenueOrderTime">Xu hướng doanh thu bán hàng thực tế và số đơn phát sinh theo tháng</p>
-        <canvas id="chartRevenueOrderTime"></canvas>
-        <div class="chart-loading" id="loadRevenueOrderTime"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
-      </article>
     </div>
   </div>
 
@@ -1358,12 +1352,7 @@
         <canvas id="chartProductOpty"></canvas>
         <div class="chart-loading" id="loadProductOpty"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
       </article>
-      <article class="chart-card">
-        <h3 id="titleMonthlyClosedOrders"><i class="fa-solid fa-square-poll-horizontal" style="color:var(--green);margin-right:6px;"></i>Lead theo nguồn &amp; Đơn chốt theo thời gian</h3>
-        <p class="chart-desc">Tổng lead từ API thực (cột xanh nhạt) &amp; số đơn chốt thắng (cột xanh lá) — cập nhật theo bộ lọc ngày</p>
-        <canvas id="chartMonthlyClosedOrders"></canvas>
-        <div class="chart-loading" id="loadMonthlyClosedOrders"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải từ API…</div>
-      </article>
+
       <article class="chart-card full-width">
         <h3><i class="fa-solid fa-fire" style="color:var(--orange);margin-right:6px;"></i>Sản phẩm theo doanh thu</h3>
         <p class="chart-desc">Tổng hợp các sản phẩm chi tiết có giá trị cơ hội cao nhất (tối đa 20 sản phẩm)</p>
@@ -3509,7 +3498,6 @@ init();
     
     renderEndToEndFunnelChart();
     renderWinRateSalesRepChart();
-    renderMonthlyClosedOrdersChart();
     renderProductRevenueAndQtyCharts();
     renderHotProductsChart();
     renderDetailedProductsChart();
@@ -3526,7 +3514,6 @@ init();
     renderLeadOptyTimeChart();
     renderLeadQualifiedTimeChart();
     renderRevenueNewVsReturningChart();
-    renderRevenueOrderTimeChart();
   }
 
   window.renderAllLiveCharts = renderAllLiveCharts;
