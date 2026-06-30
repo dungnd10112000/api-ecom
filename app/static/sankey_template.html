@@ -3404,12 +3404,7 @@ init();
   async function renderRevenueTimeChart(){
     try {
       show('loadRevenueTime');
-      const fromEl = document.getElementById('dateFrom');
-      const toEl   = document.getElementById('dateTo');
-      const dateFrom = fromEl?.value || '2025-12-01';
-      const dateTo   = toEl?.value   || new Date().toISOString().slice(0,10);
-
-      const json = await liveAPI(`/api/orders/stats/revenue-by-time?group_by=month&date_from=${dateFrom}&date_to=${dateTo}`);
+      const json = await liveAPI('/api/orders/stats/revenue-by-time?group_by=month');
       hide('loadRevenueTime');
 
       const gb = determineGroupBy();
