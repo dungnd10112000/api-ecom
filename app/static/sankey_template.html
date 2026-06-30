@@ -1922,6 +1922,11 @@ init();
         try {
           return JSON.parse(cached);
         } catch (e) {
+          localStorage.removeItem(cacheKey);
+        }
+      }
+    }
+
     const res = await fetch(url, { headers: { 'x-api-key': API_KEY } });
     const json = await res.json();
     try {
