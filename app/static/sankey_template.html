@@ -1898,7 +1898,7 @@ init();
     if (fromVal) url += `&date_from=${fromVal}`;
     if (toVal) url += `&date_to=${toVal}`;
 
-    const cacheKey = `crm_cache_${url}`;
+    const cacheKey = `crm_cache_v2_${url}`;
     if (!forceRefresh) {
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
