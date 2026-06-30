@@ -1072,9 +1072,8 @@
   <!-- Navigation Tabs -->
   <div class="analytics-tabs">
     <button class="tab-btn active" data-target="tab-lead-pipeline"><i class="fa-solid fa-chart-line"></i> Lead & Pipeline</button>
-    <button class="tab-btn" data-target="tab-quote-conversion"><i class="fa-solid fa-file-invoice-dollar"></i> Báo giá & Chuyển đổi</button>
-    <button class="tab-btn" data-target="tab-activities"><i class="fa-solid fa-business-time"></i> Hoạt động (Activities)</button>
-    <button class="tab-btn" data-target="tab-customers-revenue"><i class="fa-solid fa-users-gear"></i> Khách hàng & Doanh thu</button>
+    <button class="tab-btn" data-target="tab-quote-conversion"><i class="fa-solid fa-file-invoice-dollar"></i> Báo giá &amp; Hoạt động</button>
+    <button class="tab-btn" data-target="tab-customers-revenue"><i class="fa-solid fa-users-gear"></i> Khách hàng &amp; Doanh thu</button>
     <button class="tab-btn" data-target="tab-products"><i class="fa-solid fa-box-open"></i> Phân tích Sản phẩm</button>
   </div>
 
@@ -1149,9 +1148,9 @@
     </div>
   </div>
 
-  <!-- Tab 2: Báo giá & Chuyển đổi -->
+  <!-- Tab 2: Báo giá & Hoạt động -->
   <div class="tab-content" id="tab-quote-conversion">
-    <h3 class="analytics-section-title"><i class="fa-solid fa-file-invoice-dollar"></i> Báo giá & Chuyển đổi</h3>
+    <h3 class="analytics-section-title"><i class="fa-solid fa-file-invoice-dollar"></i> Báo giá &amp; Hoạt động</h3>
     <div class="kpi-row">
       <div class="kpi-card">
         <div class="kpi-icon"><i class="fa-solid fa-hourglass-half" style="color:#14B8A6;"></i></div>
@@ -1178,35 +1177,6 @@
         </div>
         <div class="chart-loading" id="loadKpiConversion"><i class="fa-solid fa-spinner fa-spin"></i></div>
       </div>
-    </div>
-
-    <div class="charts-grid">
-      <article class="chart-card">
-        <h3><i class="fa-solid fa-file-invoice-dollar" style="color:var(--green);margin-right:6px;"></i>Tỉ lệ báo giá thắng/thua</h3>
-        <p class="chart-desc">Trạng thái báo giá chuyển đổi thành đơn hàng</p>
-        <canvas id="chartQuoteWinLoss"></canvas>
-        <div class="chart-loading" id="loadQuoteWinLoss"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
-      </article>
-      <article class="chart-card">
-        <h3><i class="fa-solid fa-filter" style="color:var(--blue);margin-right:6px;"></i>Phễu chuyển đổi Full Funnel</h3>
-        <p class="chart-desc">Số lượng chuyển tiếp: Lead → Opty → Quote → Order</p>
-        <canvas id="chartEndToEndFunnel"></canvas>
-        <div class="chart-loading" id="loadEndToEndFunnel"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
-      </article>
-      <article class="chart-card">
-        <h3><i class="fa-solid fa-medal" style="color:var(--orange);margin-right:6px;"></i>Win Rate theo Sales Rep</h3>
-        <p class="chart-desc">Tỉ lệ chốt thắng đơn hàng của từng nhân viên (Top 10) - *Ghi chú: Winrate = Báo giá Thắng / Tổng tất cả báo giá</p>
-        <canvas id="chartWinRateSalesRep"></canvas>
-        <div class="chart-loading" id="loadWinRateRep"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
-      </article>
-
-    </div>
-  </div>
-
-  <!-- Tab 3: Hoạt động (Activities) -->
-  <div class="tab-content" id="tab-activities">
-    <h3 class="analytics-section-title"><i class="fa-solid fa-business-time"></i> Hoạt động (Activities)</h3>
-    <div class="kpi-row">
       <div class="kpi-card">
         <div class="kpi-icon"><i class="fa-solid fa-business-time" style="color:#2D73E5;"></i></div>
         <div class="kpi-info">
@@ -1228,6 +1198,24 @@
     </div>
 
     <div class="charts-grid">
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-file-invoice-dollar" style="color:var(--green);margin-right:6px;"></i>Tỉ lệ báo giá thắng/thua</h3>
+        <p class="chart-desc">Trạng thái báo giá chuyển đổi thành đơn hàng</p>
+        <canvas id="chartQuoteWinLoss"></canvas>
+        <div class="chart-loading" id="loadQuoteWinLoss"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-filter" style="color:var(--blue);margin-right:6px;"></i>Phễu chuyển đổi Full Funnel</h3>
+        <p class="chart-desc">Số lượng chuyển tiếp: Lead → Opty → Quote → Order</p>
+        <canvas id="chartEndToEndFunnel"></canvas>
+        <div class="chart-loading" id="loadEndToEndFunnel"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
+      <article class="chart-card">
+        <h3><i class="fa-solid fa-medal" style="color:var(--orange);margin-right:6px;"></i>Win Rate theo Sales Rep</h3>
+        <p class="chart-desc">Tỉ lệ chốt thắng đơn hàng của từng nhân viên (Top 10) - *Ghi chú: Winrate = Báo giá Thắng / Tổng tất cả báo giá</p>
+        <canvas id="chartWinRateSalesRep"></canvas>
+        <div class="chart-loading" id="loadWinRateRep"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
+      </article>
       <article class="chart-card">
         <h3><i class="fa-solid fa-phone-volume" style="color:var(--teal);margin-right:6px;"></i>Hoạt động theo loại</h3>
         <p class="chart-desc">Cơ cấu cuộc gọi, email, meeting, công việc</p>
