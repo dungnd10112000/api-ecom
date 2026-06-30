@@ -1303,7 +1303,7 @@
       </article>
       <article class="chart-card full-width">
         <h3><i class="fa-solid fa-chart-line" style="color:var(--green);margin-right:6px;"></i>Doanh thu &amp; Số đơn hàng theo thời gian</h3>
-        <p class="chart-desc">Xu hướng doanh thu bán hàng thực tế và số đơn phát sinh theo tháng</p>
+        <p class="chart-desc" id="descRevenueOrderTime">Xu hướng doanh thu bán hàng thực tế và số đơn phát sinh theo tháng</p>
         <canvas id="chartRevenueOrderTime"></canvas>
         <div class="chart-loading" id="loadRevenueOrderTime"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
       </article>
@@ -1359,8 +1359,8 @@
         <div class="chart-loading" id="loadProductOpty"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải…</div>
       </article>
       <article class="chart-card">
-        <h3><i class="fa-solid fa-square-poll-horizontal" style="color:var(--green);margin-right:6px;"></i>Lead theo nguồn & Đơn chốt theo tháng</h3>
-        <p class="chart-desc">Tổng lead từ API thực (cột xanh nhạt) & số đơn chốt thắng (cột xanh lá) — cập nhật theo bộ lọc ngày</p>
+        <h3 id="titleMonthlyClosedOrders"><i class="fa-solid fa-square-poll-horizontal" style="color:var(--green);margin-right:6px;"></i>Lead theo nguồn &amp; Đơn chốt theo tháng</h3>
+        <p class="chart-desc">Tổng lead từ API thực (cột xanh nhạt) &amp; số đơn chốt thắng (cột xanh lá) — cập nhật theo bộ lọc ngày</p>
         <canvas id="chartMonthlyClosedOrders"></canvas>
         <div class="chart-loading" id="loadMonthlyClosedOrders"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải từ API…</div>
       </article>
@@ -1882,7 +1882,8 @@ init();
     if (!fromVal || !toVal) return 'month';
     const diffTime = Math.abs(new Date(toVal) - new Date(fromVal));
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    if (diffDays <= 45) return 'day';
+    if (diffDays <= 30) return 'day';
+    if (diffDays <= 180) return 'week';
     return 'month';
   }
 
@@ -1921,11 +1922,6 @@ init();
         try {
           return JSON.parse(cached);
         } catch (e) {
-          console.warn('Cache parse failed for', cacheKey);
-        }
-      }
-    }
-    
     const res = await fetch(url, { headers: { 'x-api-key': API_KEY } });
     const json = await res.json();
     try {
@@ -2587,6 +2583,13 @@ init();
       ]);
 
       hide('loadMonthlyClosedOrders');
+
+      const gb = determineGroupBy();
+      const titleEl = document.getElementById('titleMonthlyClosedOrders');
+      if (titleEl) {
+        const unit = gb === 'day' ? 'ngày' : gb === 'week' ? 'tuần' : 'tháng';
+        titleEl.innerHTML = `<i class="fa-solid fa-square-poll-horizontal" style="color:var(--green);margin-right:6px;"></i>Lead theo nguồn &amp; Đơn chốt theo ${unit}`;
+      }
 
       // Xây dựng bảng tháng từ by-time
       const timeData = (leadsByTime.data || []).sort((a,b) => a.period.localeCompare(b.period));
@@ -3418,6 +3421,14 @@ init();
 
       const json = await liveAPI(`/api/orders/stats/revenue-by-time?group_by=month&date_from=${dateFrom}&date_to=${dateTo}`);
       hide('loadRevenueOrderTime');
+
+      const gb = determineGroupBy();
+      const descEl = document.getElementById('descRevenueOrderTime');
+      if (descEl) {
+        const unit = gb === 'day' ? 'ngày' : gb === 'week' ? 'tuần' : 'tháng';
+        descEl.textContent = `Xu hướng doanh thu bán hàng thực tế và số đơn phát sinh theo ${unit}`;
+      }
+
       const items = json.data || [];
       if(!items.length) return;
 
